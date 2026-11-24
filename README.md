@@ -6,15 +6,20 @@ generation settings.
 
 ## Installation
 
-1. Open your SillyTavern installation folder.
-2. Copy this whole folder into `data/<your-user-handle>/extensions/` (the
-   "Install for all users" location) or into
-   `public/scripts/extensions/third-party/` (the "Install for current user"
-   location).
-3. Restart SillyTavern, or press `F5` in the browser.
-4. Open **Extensions** (the puzzle-piece icon in the top bar) and confirm
-   **Advanced Group Chat** appears in the list and is enabled.
+SillyTavern uses Git to install third-party extensions, so make sure Git is
+installed on the machine running the SillyTavern server.
 
+1. Open SillyTavern in your browser and select **Extensions** (the puzzle-piece
+   icon in the top bar).
+2. Open **Install Extension**.
+3. Paste this repository URL into the Git repository URL field:
+   `https://github.com/depuuttt/st-advanced-group-chat`
+4. Choose whether to install for all users or only the current user, if
+   SillyTavern offers that choice, then select **Install**.
+5. Once installation finishes, reload the page if prompted. Open **Extensions**
+   and confirm **Advanced Group Chat** appears and is enabled.
+
+If installation fails, check that Git is installed on the SillyTavern server.
 If the extension is listed as "not loaded", open the browser console (F12) and
 look for a message prefixed `[st_advanced_group_chat]`.
 
