@@ -4,7 +4,7 @@ This file provides guidance to OpenAI Codex when working with code in this repos
 
 ## What this is
 
-A SillyTavern UI extension that lets each member of a group chat use a different language model. At request time it rewrites only the `model` field of the outgoing **Chat Completion** request; the active provider, endpoint, API key, and all other generation settings are left as SillyTavern built them. No build step, no third-party dependencies, no server plugin — plain browser ES modules.
+A work-in-progress SillyTavern UI extension that adds features to group chats. Per-member model selection is the first feature: it lets each member of a group chat use a different language model by rewriting, at request time, only the `model` field of the outgoing **Chat Completion** request — the active provider, endpoint, API key, and all other generation settings are left as SillyTavern built them. New features land as new `src/` modules (see the feature registry below). No build step, no third-party dependencies, no server plugin — plain browser ES modules.
 
 ## Commands
 
@@ -18,7 +18,7 @@ Entry point is [index.js](index.js) (the `js` referenced by [manifest.json](mani
 
 **Feature registry.** Each feature module exports `init`/`dispose` functions and is registered in `index.js` via `registerFeature({ name, init, dispose })`. `onExtensionReady` (wired to SillyTavern's `APP_READY` by `src/extension-lifecycle.js`) runs every `init` exactly once, guards each with try/catch, and `disposeExtension` runs every `dispose` newest-first. New group-chat features should be added as a new `src/` module plus a `registerFeature` call — not by editing existing modules.
 
-**Two features:**
+**Current features** (one `src/` module each):
 
 - `src/request-routing.js` — the core behavior. Tracks who is speaking via `GROUP_MEMBER_DRAFTED`, then on `CHAT_COMPLETION_SETTINGS_READY` swaps `request.model` only when the request's `char_name` matches the drafted member and a non-empty override exists for that group+member. `GROUP_WRAPPER_FINISHED` resets the speaker. All other requests pass through untouched.
 - `src/member-model-button.js` — UI only. Adds a model button to each `.group_member` row in the group editor. SillyTavern rebuilds that list with no event, so a `MutationObserver` (filtered by `mutationsTouchMemberList`, coalesced via `requestAnimationFrame`) re-adds buttons. Buttons stop click propagation so SillyTavern's document-level `.right_menu_button` handlers don't also fire.

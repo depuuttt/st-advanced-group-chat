@@ -1,0 +1,9 @@
+# Personal, machine-local agent notes — never commit
+.claude.local.md
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# OS cruft
+.DS_Store
+Thumbs.db
