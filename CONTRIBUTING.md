@@ -17,14 +17,14 @@ This repository does **not** vendor SillyTavern's documentation. When you change
 If you develop with an AI coding agent (Claude Code, Codex, or any other), give it the path to your local SillyTavern checkout via a **`LOCAL.md` file in the repository root**:
 
 1. Create `LOCAL.md` in the repository root (it is gitignored — never commit it).
-2. Point it at your local SillyTavern checkout. Example:
+2. Replace the placeholder below with the path to your local SillyTavern checkout. If an AI agent is helping you set up this file for the first time and you have not provided the path, the agent should ask you where your SillyTavern checkout is before filling it in. Do not leave the placeholder in place when asking the agent to inspect SillyTavern source. Example:
 
    ```markdown
    # Local notes (not committed)
 
    ## Local SillyTavern checkout
 
-   `C:\Tools\SillyTavern-Launcher\SillyTavern`
+   `<PATH_TO_YOUR_SILLYTAVERN_CHECKOUT>`
 
    Useful spots when checking SillyTavern's actual behavior:
 
