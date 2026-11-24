@@ -38,6 +38,37 @@ function getContextOrNull() {
 }
 
 /**
+ * Translates a tagged template through SillyTavern's `t`.
+ *
+ * `t` on the context is tagged-template only — calling it as `t('literal')`
+ * throws because it runs `strings.reduce` internally. English source strings
+ * double as both the translation key and the fallback: when no `t` is on the
+ * context (or it throws), the raw template text is interpolated as-is.
+ *
+ * @param {string[]} strings Template literal static parts.
+ * @param {...unknown} values Template literal interpolations.
+ * @returns {string} The translated (or fallback) text.
+ */
+export function translateText(strings, ...values) {
+    const reduce = () => strings.reduce(
+        (acc, part, index) => acc + part + (index < values.length ? String(values[index]) : ''),
+        '',
+    );
+
+    const t = getContextOrNull()?.t;
+    if (typeof t !== 'function') {
+        return reduce();
+    }
+
+    try {
+        return t(strings, ...values);
+    } catch (error) {
+        console.warn(`[${MODULE_NAME}] Translation failed; falling back to the source string`, error);
+        return reduce();
+    }
+}
+
+/**
  * Describes how the model button should present a member's saved override.
  *
  * @param {string} override Saved model name, or an empty string.
@@ -45,10 +76,10 @@ function getContextOrNull() {
  */
 export function getButtonState(override) {
     if (override) {
-        return { hasOverride: true, title: `Model: ${override}` };
+        return { hasOverride: true, title: translateText`Model: ${override}` };
     }
 
-    return { hasOverride: false, title: 'Set a model for this member' };
+    return { hasOverride: false, title: translateText`Set a model for this member` };
 }
 
 /**
@@ -202,8 +233,8 @@ export async function openMemberModelInput(groupId, memberId) {
     const label = memberName ? `${memberName} (${memberId})` : memberId;
 
     const entered = await input(
-        'Member model',
-        `Model for ${label}. Leave empty to use SillyTavern's selected model.`,
+        translateText`Member model`,
+        translateText`Model for ${label}. Leave empty to use SillyTavern's selected model.`,
         current,
     );
 

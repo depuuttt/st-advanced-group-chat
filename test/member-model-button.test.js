@@ -8,6 +8,7 @@ import {
     openMemberModelInput,
     mutationsTouchMemberList,
     handleButtonKeydown,
+    translateText,
 } from '../src/member-model-button.js';
 
 const GROUP = 'group-1';
@@ -227,5 +228,37 @@ test('handleButtonKeydown ignores every other key', () => {
         const event = makeKeyEvent(key);
         assert.equal(handleButtonKeydown(event), false);
         assert.equal(event.prevented, false);
+    }
+});
+
+test('translateText falls back to the English source string with no locale loaded', () => {
+    const restore = createFakeSillyTavern().install();
+    try {
+        assert.equal(translateText`Set a model for this member`, 'Set a model for this member');
+        assert.equal(translateText`Model: ${'gpt-5'}`, 'Model: gpt-5');
+    } finally {
+        restore();
+    }
+});
+
+test('translateText uses the SillyTavern translation function when one is available', () => {
+    const fake = createFakeSillyTavern();
+    fake.context.t = (strings, ...values) =>
+        strings.reduce((acc, s, i) => acc + s + (values[i] !== undefined ? `<${values[i]}>` : ''), '');
+    const restore = fake.install();
+    try {
+        assert.equal(translateText`Model: ${'gpt-5'}`, 'Model: <gpt-5>');
+    } finally {
+        restore();
+    }
+});
+
+test('getButtonState titles are produced through the translation helper', () => {
+    const restore = createFakeSillyTavern().install();
+    try {
+        assert.equal(getButtonState('gpt-5').title, 'Model: gpt-5');
+        assert.equal(getButtonState('').title, 'Set a model for this member');
+    } finally {
+        restore();
     }
 });
