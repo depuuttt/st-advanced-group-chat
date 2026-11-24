@@ -47,7 +47,7 @@
 - [x] Create the manifest with a stable extension name, version, JS entry, and CSS entry.
 - [x] Create `index.js` to initialize the feature modules once on `APP_READY`.
 - [x] Add empty base styles and README instructions for installing the repository into SillyTavern's third-party extensions folder.
-- [ ] Manually confirm the extension appears in SillyTavern's extension list and loads without a browser-console error.
+- [x] Manually confirm the extension appears in SillyTavern's extension list and loads without a browser-console error.
 
 ### Task 2: Add group-scoped model storage and request routing
 
@@ -68,7 +68,7 @@
 - [x] Track the drafted character ID before each group member generation and clear it when the group wrapper finishes.
 - [x] On `CHAT_COMPLETION_SETTINGS_READY`, require a current group, a known active member, and a matching `char_name`; if any check fails, leave the request untouched.
 - [x] Change only `request.model` when a non-empty override exists; leave the baseline model untouched otherwise.
-- [ ] Manually inspect one group request, one regular chat request, one Text Completion request, and one request without an override to confirm only the eligible request changes model.
+- [x] Manually inspect one group request, one regular chat request, one Text Completion request, and one request without an override to confirm only the eligible request changes model.
 
 ### Task 3: Add the per-member model icon and input dialog
 
@@ -86,8 +86,8 @@
 - [x] Re-run `refreshMemberModelButtons()` after group member list rendering/update events and observe list mutations so rerenders restore the icon without creating duplicates.
 - [x] On click, stop propagation so SillyTavern's existing member actions do not fire; show a text input with the saved model as its initial value.
 - [x] Save a non-empty entry for the current group/member, clear it for an empty entry, and update the icon title/state to show whether an override is active.
-- [ ] Manually confirm the icon appears on every current member row, survives filtering/reordering/rerendering, and each member can set, edit, and clear their model.
-- [ ] Manually confirm a shared character can have different model names in two groups and the values remain after reloading SillyTavern.
+- [x] Manually confirm the icon appears on every current member row, survives filtering/reordering/rerendering, and each member can set, edit, and clear their model.
+- [x] Manually confirm a shared character can have different model names in two groups and the values remain after reloading SillyTavern.
 
 ### Task 4: Document behavior and compatibility
 
