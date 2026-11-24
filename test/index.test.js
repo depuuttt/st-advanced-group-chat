@@ -13,6 +13,9 @@ async function loadIndex({ withSillyTavern = true } = {}) {
     const fake = createFakeSillyTavern({
         groupId: 'group-1',
         characters: [{ avatar: 'bob.png', name: 'Bob' }],
+        // The override-pruning feature prunes overrides whose group does not
+        // exist at APP_READY, so the fake has to declare the live group.
+        groups: [{ id: 'group-1', members: ['bob.png'] }],
     });
 
     let restore;

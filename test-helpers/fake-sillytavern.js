@@ -9,7 +9,7 @@
  * code under test.
  */
 
-export function createFakeSillyTavern({ groupId = null, characters = [] } = {}) {
+export function createFakeSillyTavern({ groupId = null, characters = [], groups = [] } = {}) {
     const listeners = new Map();
 
     const eventSource = {
@@ -29,6 +29,7 @@ export function createFakeSillyTavern({ groupId = null, characters = [] } = {}) 
         saveCount: 0,
         groupId,
         characters,
+        groups,
         popupCalls: [],
         popupResult: null,
     };
@@ -36,6 +37,7 @@ export function createFakeSillyTavern({ groupId = null, characters = [] } = {}) 
     const context = {
         groupId,
         characters,
+        groups,
         extensionSettings: {},
         saveSettingsDebounced: () => { state.saveCount += 1; },
         Popup: {
@@ -53,6 +55,8 @@ export function createFakeSillyTavern({ groupId = null, characters = [] } = {}) 
             GROUP_WRAPPER_FINISHED: 'group_wrapper_finished',
             CHAT_COMPLETION_SETTINGS_READY: 'chat_completion_settings_ready',
             TEXT_COMPLETION_SETTINGS_READY: 'text_completion_settings_ready',
+            GROUP_UPDATED: 'group_updated',
+            GROUP_CHAT_DELETED: 'group_chat_deleted',
         },
     };
 

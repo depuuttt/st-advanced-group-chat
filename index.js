@@ -9,6 +9,7 @@
 import { registerAppReady } from './src/extension-lifecycle.js';
 import { initRequestRouting, disposeRequestRouting } from './src/request-routing.js';
 import { initMemberModelButtons, disposeMemberModelButtons } from './src/member-model-button.js';
+import { initOverridePruning, disposeOverridePruning } from './src/override-pruning.js';
 
 const MODULE_NAME = 'st_advanced_group_chat';
 
@@ -84,6 +85,12 @@ registerFeature({
     name: 'member-model-button',
     init: initMemberModelButtons,
     dispose: disposeMemberModelButtons,
+});
+
+registerFeature({
+    name: 'override-pruning',
+    init: initOverridePruning,
+    dispose: disposeOverridePruning,
 });
 
 registerAppReady(onExtensionReady);
