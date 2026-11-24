@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-const read = (name) => readFileSync(join(repoRoot, name), 'utf8');
+const read = (name) => readFileSync(join(repoRoot, name), 'utf8').replace(/\r\n/g, '\n');
 
 const claudeHeader = '# CLAUDE.md\n\nThis file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.';
 const agentsHeader = '# AGENTS.md\n\nThis file provides guidance to OpenAI Codex when working with code in this repository.';
