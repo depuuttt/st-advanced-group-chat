@@ -38,6 +38,6 @@ Entry point is [index.js](index.js) (the `js` referenced by [manifest.json](mani
 
 This repository has two agent-guidance files with identical bodies: `CLAUDE.md` (Claude Code) and `AGENTS.md` (OpenAI Codex). Only the header differs. **Any change to one must be made to the other in the same commit** — commands, architecture notes, conventions, everything. `test/sync.test.js` fails when the bodies drift, so run `npm test` after editing either file.
 
-## Design docs
+## Design docs and SillyTavern reference
 
-`docs/superpowers/` holds specs and implementation plans (per-member models, deferred minors). `docs/sillytavern-development/` is SillyTavern reference documentation copied for context — consult it before changing event or API usage.
+`docs/superpowers/` holds specs and implementation plans (per-member models, deferred minors). No SillyTavern reference docs are vendored into this repo: consult the SillyTavern source or its docs on your machine — for Claude Code, put the path in a gitignored `.claude.local.md` (see [CONTRIBUTING.md](CONTRIBUTING.md)).
