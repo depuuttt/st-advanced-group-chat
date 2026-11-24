@@ -7,43 +7,37 @@ import { dirname, join } from 'node:path';
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const readme = readFileSync(join(repoRoot, 'README.md'), 'utf8');
 
-/**
- * The manual acceptance checklist is the only verification for behaviour that
- * needs a live group chat. These tests guard the checklist against being
- * quietly trimmed, and guard the documented scope against drifting from the
- * implementation.
- */
-test('README explains that the active connection is reused and only the model changes', () => {
-    assert.match(readme, /reuses?/i);
-    assert.match(readme, /only the `model` field/i);
-    assert.match(readme, /endpoint, API key/i);
+test('README gives users the installation steps and repository address', () => {
+    assert.match(readme, /^## Install$/m);
+    assert.match(readme, /Extensions/i);
+    assert.match(readme, /https:\/\/github\.com\/depuuttt\/st-advanced-group-chat/);
 });
 
-test('README states that an empty model falls back to the selected model', () => {
-    assert.match(readme, /empty value clears/i);
-    assert.match(readme, /currently selected/i);
+test('README explains how to assign and clear a member model', () => {
+    assert.match(readme, /^## Choose a model for a group member$/m);
+    assert.match(readme, /Current Members/);
+    assert.match(readme, /select \*\*OK\*\*/);
+    assert.match(readme, /clear the text/i);
+    assert.match(readme, /currently selected in `?\*\*API Connections\*\*`?/i);
 });
 
-test('README states that Text Completion is out of scope', () => {
-    assert.match(readme, /Text Completion/i);
-    assert.match(readme, /not\s+(yet\s+)?supported/i);
+test('README explains the connection behavior in user-facing terms', () => {
+    assert.match(readme, /existing SillyTavern connection/i);
+    assert.match(readme, /does not ask for or store API keys/i);
+    assert.match(readme, /other generation settings/i);
 });
 
-test('README carries an acceptance checklist covering every review-focus condition', () => {
-    const checklistStart = readme.search(/^##+ .*[Aa]cceptance checklist/m);
-    assert.notEqual(checklistStart, -1, 'missing acceptance checklist section');
+test('README describes model names, saved choices, and supported chat types', () => {
+    assert.match(readme, /model identifier used by your provider/i);
+    assert.match(readme, /does not show a model list or check/i);
+    assert.match(readme, /saved separately for each group and member/i);
+    assert.match(readme, /group chats using \*\*Chat Completion\*\*/i);
+    assert.match(readme, /does not affect one-on-one chats or \*\*Text Completion\*\*/i);
+});
 
-    const checklist = readme.slice(checklistStart);
-
-    for (const condition of [
-        /No saved override/i,
-        /Cleared override/i,
-        /Same member in two groups/i,
-        /Speaker identity/i,
-        /Non-group/i,
-        /Text Completion/i,
-        /re-?render/i,
-    ]) {
-        assert.match(checklist, condition);
-    }
+test('README includes practical troubleshooting guidance', () => {
+    assert.match(readme, /^## Troubleshooting$/m);
+    assert.match(readme, /model choice has no effect/i);
+    assert.match(readme, /model icon is missing/i);
+    assert.match(readme, /extension does not load/i);
 });

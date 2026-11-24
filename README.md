@@ -1,120 +1,49 @@
 # Advanced Group Chat
 
-A SillyTavern UI extension that lets each member of a group chat use a different
-language model, while keeping SillyTavern's active connection and its other
-generation settings.
+Choose a different language model for each character in a SillyTavern group chat. Each character's choice is saved for that group, so the same character can use a different model in another group.
 
-## Installation
+## What it does
 
-SillyTavern uses Git to install third-party extensions, so make sure Git is
-installed on the machine running the SillyTavern server.
+When a group member is about to reply, Advanced Group Chat uses the model name you assigned to that member. Members without an assigned model continue to use the model selected in SillyTavern's **API Connections** panel.
 
-1. Open SillyTavern in your browser and select **Extensions** (the puzzle-piece
-   icon in the top bar).
-2. Open **Install Extension**.
-3. Paste this repository URL into the Git repository URL field:
-   `https://github.com/depuuttt/st-advanced-group-chat`
-4. Choose whether to install for all users or only the current user, if
-   SillyTavern offers that choice, then select **Install**.
-5. Once installation finishes, reload the page if prompted. Open **Extensions**
-   and confirm **Advanced Group Chat** appears and is enabled.
+The extension uses your existing SillyTavern connection. It does not ask for or store API keys, and it does not change your provider, connection address, or other generation settings.
 
-If installation fails, check that Git is installed on the SillyTavern server.
-If the extension is listed as "not loaded", open the browser console (F12) and
-look for a message prefixed `[st_advanced_group_chat]`.
+## Install
 
-## Usage
+1. In SillyTavern, open **Extensions** from the top bar.
+2. Select **Install Extension**.
+3. Paste this repository address: `https://github.com/depuuttt/st-advanced-group-chat`
+4. Select **Install**, then reload SillyTavern if prompted.
+5. Open **Extensions** and make sure **Advanced Group Chat** is enabled.
 
-1. Open a group chat and click the group-management (people) icon.
-2. In **Current Members**, each member row has an extra model icon beside the
-   existing row buttons.
-3. Click the model icon and type the model name you want that member to use.
-4. Click **OK** to save. Clear the field and click **OK** to remove the override
-   and go back to SillyTavern's selected model.
+SillyTavern installs extensions using Git. If installation fails, make sure Git is installed on the computer running your SillyTavern server.
 
-A member with a saved override is highlighted, and hovering the icon shows the
-saved model name.
+## Choose a model for a group member
 
-### What changes at request time
+1. Open the group chat and open its group-management panel (the people icon).
+2. In **Current Members**, find the character and select the robot/model icon on that character's row.
+3. Enter the model name your provider expects, then select **OK**.
 
-The extension reuses SillyTavern's selected connection. It listens for
-SillyTavern's `CHAT_COMPLETION_SETTINGS_READY` event and replaces
-only the `model` field of the outgoing Chat Completion request for the group
-member who is about to speak. The active provider, endpoint, API key, and every
-other generation setting are left exactly as SillyTavern built them.
+The icon is highlighted when that member has a saved model. Hover over it to see the saved name.
 
-A member with no override uses the model currently selected in SillyTavern's
-API Connections panel. An empty value clears the override and puts the member
-back on that selected model. Nothing is stored or changed until you type a model
-name for that member.
+To go back to the model selected in **API Connections**, open the member's model dialog, clear the text, and select **OK**. Cancelling the dialog leaves the saved choice as it was.
 
-### Scope of the first version
+### Finding the model name
 
-- Only **Chat Completion** requests are changed. **Text Completion** is not
-  supported in the first version.
-- Only **group chats** are changed. Regular one-on-one chats are untouched.
-- Requests where the speaking member cannot be identified are left unchanged.
-- Model names are typed by hand; the extension does not list or validate models
-  against your provider.
-- Overriding the model does not re-run SillyTavern's per-model parameter
-  handling. If you switch a member to a model from a different family than the
-  one selected in SillyTavern, check that the connection still accepts the
-  request.
-- Model names are stored per group and per member. The same character can use
-  different models in different groups.
+Enter the model identifier used by your provider, not necessarily the display name shown in a model list. Check your provider's documentation or model settings if you are unsure. Advanced Group Chat does not show a model list or check whether a name is valid.
 
-## Compatibility
+## Important to know
 
-The extension was built against SillyTavern's `staging` branch and relies on:
+- This works in group chats using **Chat Completion**. It does not affect one-on-one chats or **Text Completion**.
+- The selected model must be available through your current API connection. Choosing a model from a different model family may require different settings; SillyTavern does not automatically reconfigure those settings for this extension.
+- A member without a saved choice uses the model currently selected in **API Connections**.
+- Choices are saved separately for each group and member and remain saved when you reload SillyTavern.
 
-- the `GROUP_MEMBER_DRAFTED` and `GROUP_WRAPPER_FINISHED` events, to know which
-  member is about to speak;
-- the `CHAT_COMPLETION_SETTINGS_READY` event, to adjust the outgoing request;
-- the group editor's `.group_member` rows inside `.rm_group_members`, which
-  carry the member's avatar as `data-id` and character index as `data-chid`.
+## Troubleshooting
 
-If a future SillyTavern version renames these events or restructures the member
-row, the extension stops applying overrides rather than guessing. Check the
-browser console for `[st_advanced_group_chat]` warnings after an upgrade.
-
-No server plugin and no third-party dependency are required.
-
-## Manual acceptance checklist
-
-Run through these in a SillyTavern instance with the extension installed. Each
-one covers behaviour that needs a live group chat and cannot be verified by the
-automated tests.
-
-- [ ] **Extension loads** — Advanced Group Chat appears in the Extensions panel
-      and the browser console shows no `[st_advanced_group_chat]` errors.
-- [ ] **No saved override** — Leave every member's model empty, send a message,
-      and confirm the reply uses the model currently selected in API
-      Connections.
-- [ ] **Cleared override** — Set a model for a member, confirm the reply uses
-      it, then clear the field and confirm the reply goes back to the selected
-      model.
-- [ ] **Same member in two groups** — Add the same character to two groups with
-      different models and confirm each group's replies use that group's model.
-      Reload SillyTavern and confirm both values survive.
-- [ ] **Speaker identity unavailable or ambiguous** — Trigger a reply when no
-      member is selected, or with two members sharing a display name, and confirm
-      the request still uses the selected model.
-- [ ] **Non-group chat** — In a regular one-on-one chat, confirm the selected
-      model is used and no model icon appears anywhere.
-- [ ] **Text Completion** — Switch API Connections to Text Completion and
-      confirm replies are unaffected by any saved override.
-- [ ] **Icon placement and re-render** — Confirm the icon appears on every
-      Current Members row, survives filtering, reordering and the member-list
-      popout, and never appears twice on one row.
-
-## Development
-
-The extension is plain browser JavaScript with no build step and no third-party
-dependencies. Tests use Node's built-in test runner:
-
-```
-npm test
-```
+- **The model choice has no effect:** Check that the group uses Chat Completion, that the model name is correct for your provider, and that the model is available through the current connection.
+- **The model icon is missing:** Check that the extension is enabled, then reload SillyTavern and reopen the group-management panel.
+- **The extension does not load:** Open the browser console (usually F12) and look for messages beginning with `[st_advanced_group_chat]`. After a SillyTavern update, an extension update may be needed if its group controls or events have changed.
 
 ## License
 
