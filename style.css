@@ -9,7 +9,12 @@
     cursor: pointer;
 }
 
-/* A member with a saved per-group model is marked with an accent ring. */
+.group_member .group_member_icon .st-agc-model-button:focus-visible {
+    outline: 1px solid var(--SmartThemeQuoteColor, #ffb347);
+    outline-offset: 1px;
+}
+
+/* A member with a saved per-group model is marked with an accent colour. */
 .group_member .group_member_icon .st-agc-model-button.has_override {
     color: var(--SmartThemeQuoteColor, #ffb347);
     text-shadow: 0 0 4px var(--SmartThemeQuoteColor, #ffb347);
