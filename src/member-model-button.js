@@ -236,7 +236,9 @@ export async function openMemberModelInput(groupId, memberId) {
 
     const current = getModelOverride(settings, groupId, memberId);
     const memberName = context.characters?.find((character) => character.avatar === memberId)?.name;
-    const label = memberName ? `${memberName} (${memberId})` : memberId;
+    // The avatar ID is an internal storage key (often a filename); keep it
+    // out of the user-facing prompt when a display name is available.
+    const label = memberName || memberId;
 
     const entered = await input(
         translateText`Member model`,

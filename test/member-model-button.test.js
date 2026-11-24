@@ -147,6 +147,18 @@ test('openMemberModelInput prefills the dialog with the saved model', async () =
     }
 });
 
+test('openMemberModelInput shows the display name without the avatar filename', async () => {
+    const { fake, restore } = installSillyTavern({ popupResult: '' });
+    try {
+        await openMemberModelInput(GROUP, ALICE.avatar);
+
+        assert.match(fake.state.popupCalls[0].text, /Model for Alice\. Leave empty/);
+        assert.doesNotMatch(fake.state.popupCalls[0].text, /alice\.png/);
+    } finally {
+        restore();
+    }
+});
+
 test('openMemberModelInput clears the override when the field is submitted empty', async () => {
     const { fake, restore } = installSillyTavern({
         modelOverrides: { [GROUP]: { 'bob.png': 'saved-model' } },
