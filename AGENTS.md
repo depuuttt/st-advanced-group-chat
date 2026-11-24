@@ -40,4 +40,4 @@ This repository has two agent-guidance files with identical bodies: `CLAUDE.md` 
 
 ## Design docs and SillyTavern reference
 
-`docs/superpowers/` holds specs and implementation plans (per-member models, deferred minors). No SillyTavern reference docs are vendored into this repo: consult the SillyTavern source or its docs on your machine — for Claude Code, put the path in a gitignored `.claude.local.md` (see [CONTRIBUTING.md](CONTRIBUTING.md)).
+`docs/superpowers/` holds specs and implementation plans (per-member models, deferred minors). No SillyTavern reference docs are vendored into this repo: consult the SillyTavern source or its docs on your machine. If a gitignored `LOCAL.md` exists at the repository root, read it first — it points at the local SillyTavern checkout (see [CONTRIBUTING.md](CONTRIBUTING.md) to create your own).

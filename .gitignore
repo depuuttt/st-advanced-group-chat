@@ -1,5 +1,6 @@
 # Personal, machine-local agent notes — never commit
 .claude.local.md
+LOCAL.md
 
 # Claude Code local settings
 .claude/settings.local.json

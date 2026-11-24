@@ -12,13 +12,11 @@ Thank you for your interest in contributing! This extension is plain browser ES 
 
 This repository does **not** vendor SillyTavern's documentation. When you change how this extension uses a SillyTavern event or API, consult the SillyTavern source and docs in **your local SillyTavern checkout** (upstream repo: https://github.com/SillyTavern/SillyTavern).
 
-If you use an AI coding agent (Claude Code, Codex, etc.), give it the path to your local SillyTavern via a **local agent-guidance file** so it can find the source. Keep that file out of git.
+### Tell your AI agent where SillyTavern lives: `LOCAL.md`
 
-### Claude Code
+If you develop with an AI coding agent (Claude Code, Codex, or any other), give it the path to your local SillyTavern checkout via a **`LOCAL.md` file in the repository root**:
 
-Claude Code reads `CLAUDE.md` from the repo. Create a personal, gitignored `.claude.local.md` in the repository root:
-
-1. Create the file `.claude.local.md` in the repository root.
+1. Create `LOCAL.md` in the repository root (it is gitignored — never commit it).
 2. Point it at your local SillyTavern checkout. Example:
 
    ```markdown
@@ -36,13 +34,9 @@ Claude Code reads `CLAUDE.md` from the repo. Create a personal, gitignored `.cla
    - After installing this extension via SillyTavern's "Install extension", the copy lands in `data/default-user/extensions/st-advanced-group-chat`.
    ```
 
-3. Check that `.gitignore` ignores `.claude.local.md`. This repository's `.gitignore` already does; keep it that way if you fork.
+3. Check that `.gitignore` ignores `LOCAL.md`. This repository's `.gitignore` already does; keep it that way if you fork.
 
-Claude Code picks up `.claude.local.md` automatically alongside `CLAUDE.md` at session start, so the path is available without ever being committed.
-
-### Other agents
-
-For agents that read `AGENTS.md`, add a short "Local SillyTavern checkout" note to your own local conventions file (the equivalent mechanism in your agent). The same rule applies: machine-specific paths never belong in the committed guidance files.
+The committed guidance files (`CLAUDE.md`, `AGENTS.md`) instruct every agent to read `LOCAL.md` at the start of a session, so the path is available to whichever tool you use without ever being committed.
 
 ## Where extensions live on disk
 
