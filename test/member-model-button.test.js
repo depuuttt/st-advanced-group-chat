@@ -6,6 +6,7 @@ import {
     getButtonState,
     resolveMemberAvatarId,
     openMemberModelInput,
+    mutationsTouchMemberList,
 } from '../src/member-model-button.js';
 
 const GROUP = 'group-1';
@@ -161,4 +162,46 @@ test('openMemberModelInput leaves the override untouched when the dialog is canc
     } finally {
         restore();
     }
+});
+
+/**
+ * SillyTavern streams chat tokens into the DOM many times a second, so the
+ * observer must only react to mutations that actually touch the group member
+ * list rather than to every DOM change on the page.
+ */
+function makeNode({ matches = () => false, closest = () => null, querySelector = () => null } = {}) {
+    return { nodeType: 1, matches, closest, querySelector };
+}
+
+test('mutationsTouchMemberList ignores mutations elsewhere on the page', () => {
+    const chatMessage = makeNode();
+    const mutations = [{ target: chatMessage, addedNodes: [] }];
+
+    assert.equal(mutationsTouchMemberList(mutations), false);
+});
+
+test('mutationsTouchMemberList accepts mutations inside the member list', () => {
+    const memberRow = makeNode({ closest: (selector) => (selector === '.rm_group_members' ? {} : null) });
+
+    assert.equal(mutationsTouchMemberList([{ target: memberRow, addedNodes: [] }]), true);
+});
+
+test('mutationsTouchMemberList accepts a re-rendered member list container', () => {
+    const memberList = makeNode({ matches: (selector) => selector === '.rm_group_members' });
+
+    assert.equal(mutationsTouchMemberList([{ target: {}, addedNodes: [memberList] }]), true);
+});
+
+test('mutationsTouchMemberList accepts a popout copy of the member list', () => {
+    const popoutBlock = makeNode({
+        querySelector: (selector) => (selector === '.rm_group_members' ? {} : null),
+    });
+
+    assert.equal(mutationsTouchMemberList([{ target: {}, addedNodes: [popoutBlock] }]), true);
+});
+
+test('mutationsTouchMemberList ignores an added chat message', () => {
+    const chatMessage = makeNode();
+
+    assert.equal(mutationsTouchMemberList([{ target: {}, addedNodes: [chatMessage] }]), false);
 });

@@ -10,7 +10,8 @@ import { getModelOverride, setModelOverride, getSettings } from './model-overrid
 
 const MODULE_NAME = 'st_advanced_group_chat';
 
-const MEMBER_ROW_SELECTOR = '.rm_group_members .group_member';
+const MEMBER_LIST_SELECTOR = '.rm_group_members';
+const MEMBER_ROW_SELECTOR = `${MEMBER_LIST_SELECTOR} .group_member`;
 const ICON_SELECTOR = '.group_member_icon';
 const BUTTON_CLASS = 'st-agc-model-button';
 const OVERRIDE_CLASS = 'has_override';
@@ -166,6 +167,11 @@ export async function openMemberModelInput(groupId, memberId) {
     }
 
     const settings = getSettings();
+    if (!settings) {
+        console.warn(`[${MODULE_NAME}] Cannot open the model dialog without extension settings`);
+        return;
+    }
+
     const current = getModelOverride(settings, groupId, memberId);
     const memberName = context.characters?.find((character) => character.avatar === memberId)?.name;
     const label = memberName ? `${memberName} (${memberId})` : memberId;
@@ -183,6 +189,46 @@ export async function openMemberModelInput(groupId, memberId) {
 
     setModelOverride(settings, groupId, memberId, String(entered));
     refreshMemberModelButtons();
+}
+
+/**
+ * Reports whether a node is, or sits inside, a group member list.
+ *
+ * @param {Element} node Candidate node.
+ * @returns {boolean} True when the node is part of a member list.
+ */
+function isMemberListNode(node) {
+    if (node?.nodeType !== 1) {
+        return false;
+    }
+
+    return Boolean(node.matches?.(MEMBER_LIST_SELECTOR) || node.closest?.(MEMBER_LIST_SELECTOR));
+}
+
+/**
+ * Reports whether a batch of DOM mutations touched the group member list.
+ *
+ * SillyTavern streams chat tokens into the DOM many times a second, so watching
+ * the whole document and refreshing on every mutation would run a document-wide
+ * query on every animation frame. Only member-list mutations are relevant.
+ *
+ * @param {MutationRecord[]} mutations Mutations delivered by the observer.
+ * @returns {boolean} True when at least one mutation affects the member list.
+ */
+export function mutationsTouchMemberList(mutations) {
+    for (const mutation of mutations ?? []) {
+        if (isMemberListNode(mutation.target)) {
+            return true;
+        }
+
+        for (const node of mutation.addedNodes ?? []) {
+            if (isMemberListNode(node) || node.querySelector?.(MEMBER_LIST_SELECTOR)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 /**
@@ -210,6 +256,19 @@ function scheduleRefresh() {
 }
 
 /**
+ * Handles mutations delivered by the observer, ignoring everything that does not
+ * affect the group member list.
+ *
+ * @param {MutationRecord[]} mutations Mutations delivered by the observer.
+ * @returns {void}
+ */
+function handleMutations(mutations) {
+    if (mutationsTouchMemberList(mutations)) {
+        scheduleRefresh();
+    }
+}
+
+/**
  * Adds the buttons and starts watching for the member list being re-rendered.
  *
  * @returns {void}
@@ -222,7 +281,7 @@ export function initMemberModelButtons() {
         return;
     }
 
-    observer = new globalThis.MutationObserver(scheduleRefresh);
+    observer = new globalThis.MutationObserver(handleMutations);
     observer.observe(doc.body, { childList: true, subtree: true });
 }
 

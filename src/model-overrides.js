@@ -29,29 +29,22 @@ function saveSettings() {
 }
 
 /**
- * Returns the live SillyTavern context, or throws a clear error when the
- * extension is running outside SillyTavern.
- *
- * @returns {object} SillyTavern context.
- */
-function getContext() {
-    const context = globalThis.SillyTavern?.getContext?.();
-
-    if (!context?.extensionSettings) {
-        throw new Error(`[${MODULE_NAME}] SillyTavern context is unavailable`);
-    }
-
-    return context;
-}
-
-/**
  * Returns this extension's settings object, creating it and filling in any
  * default keys that a newer version added. Existing saved values are preserved.
  *
- * @returns {object} The live extension settings object.
+ * Returns `null` when SillyTavern is not available rather than throwing: this is
+ * called from inside SillyTavern's event and animation-frame callbacks, and an
+ * extension must never take the host application down with it.
+ *
+ * @returns {object|null} The live extension settings object, or null.
  */
 export function getSettings() {
-    const { extensionSettings } = getContext();
+    const extensionSettings = globalThis.SillyTavern?.getContext?.()?.extensionSettings;
+
+    if (!extensionSettings) {
+        console.warn(`[${MODULE_NAME}] SillyTavern settings are unavailable`);
+        return null;
+    }
 
     if (!extensionSettings[MODULE_NAME]) {
         extensionSettings[MODULE_NAME] = structuredClone(DEFAULT_SETTINGS);

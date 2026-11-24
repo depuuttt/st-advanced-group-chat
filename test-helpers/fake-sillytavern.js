@@ -29,6 +29,8 @@ export function createFakeSillyTavern({ groupId = null, characters = [] } = {}) 
         saveCount: 0,
         groupId,
         characters,
+        popupCalls: [],
+        popupResult: null,
     };
 
     const context = {
@@ -36,12 +38,21 @@ export function createFakeSillyTavern({ groupId = null, characters = [] } = {}) 
         characters,
         extensionSettings: {},
         saveSettingsDebounced: () => { state.saveCount += 1; },
+        Popup: {
+            show: {
+                input: async (header, text, defaultValue = '') => {
+                    state.popupCalls.push({ header, text, defaultValue });
+                    return state.popupResult;
+                },
+            },
+        },
         eventSource,
         eventTypes: {
             APP_READY: 'app_ready',
             GROUP_MEMBER_DRAFTED: 'group_member_drafted',
             GROUP_WRAPPER_FINISHED: 'group_wrapper_finished',
             CHAT_COMPLETION_SETTINGS_READY: 'chat_completion_settings_ready',
+            TEXT_COMPLETION_SETTINGS_READY: 'text_completion_settings_ready',
         },
     };
 

@@ -201,6 +201,69 @@ test('initRequestRouting subscribes to the group and request events', async () =
     }
 });
 
+test('leaves Text Completion requests alone', async () => {
+    const fake = createFakeSillyTavern({ groupId: GROUP, characters: [ALICE, BOB] });
+    const restore = fake.install();
+    const routing = await loadRouting();
+    fake.context.extensionSettings.st_advanced_group_chat = {
+        modelOverrides: { [GROUP]: { [BOB.avatar]: 'bob-model' } },
+    };
+    try {
+        routing.initRequestRouting();
+        routing.handleMemberDrafted(1);
+
+        const request = makeRequest({ char_name: 'Bob' });
+        fake.emit('text_completion_settings_ready', request);
+
+        assert.equal(request.model, 'st-default-model');
+        assert.equal(fake.state.listeners.get('text_completion_settings_ready')?.length ?? 0, 0);
+    } finally {
+        restore();
+    }
+});
+
+test('routes group requests for every generation type', async () => {
+    const { routing, restore } = await withBobDrafted();
+    try {
+        for (const type of ['normal', 'swipe', 'impersonate', 'continue', 'quiet']) {
+            const request = makeRequest({ char_name: 'Bob' });
+            request.type = type;
+
+            routing.handleChatCompletionSettingsReady(request);
+
+            assert.equal(request.model, 'bob-model', `generation type ${type} should route`);
+        }
+    } finally {
+        restore();
+    }
+});
+
+test('two members sharing a display name use only the drafted member override', async () => {
+    const first = { avatar: 'bob-1.png', name: 'Bob' };
+    const second = { avatar: 'bob-2.png', name: 'Bob' };
+    const fake = createFakeSillyTavern({ groupId: GROUP, characters: [first, second] });
+    const restore = fake.install();
+    const routing = await loadRouting();
+    fake.context.extensionSettings.st_advanced_group_chat = {
+        modelOverrides: { [GROUP]: { [second.avatar]: 'second-model' } },
+    };
+    try {
+        routing.handleMemberDrafted(1);
+        const secondRequest = makeRequest({ char_name: 'Bob' });
+        routing.handleChatCompletionSettingsReady(secondRequest);
+        assert.equal(secondRequest.model, 'second-model');
+
+        // The first member shares the display name but has no override of its
+        // own, so the name match alone must not route them.
+        routing.handleMemberDrafted(0);
+        const firstRequest = makeRequest({ char_name: 'Bob' });
+        routing.handleChatCompletionSettingsReady(firstRequest);
+        assert.equal(firstRequest.model, 'st-default-model');
+    } finally {
+        restore();
+    }
+});
+
 test('disposeRequestRouting removes the listeners it added', async () => {
     const fake = createFakeSillyTavern({ groupId: GROUP, characters: [ALICE, BOB] });
     const restore = fake.install();

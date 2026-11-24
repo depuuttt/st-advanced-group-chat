@@ -104,6 +104,20 @@ test('setModelOverride persists through SillyTavern settings save', () => {
     }
 });
 
+test('getSettings returns null instead of throwing when SillyTavern is unavailable', () => {
+    const previous = globalThis.SillyTavern;
+    delete globalThis.SillyTavern;
+    const originalWarn = console.warn;
+    console.warn = () => {};
+    try {
+        assert.equal(getSettings(), null);
+    } finally {
+        console.warn = originalWarn;
+        if (previous === undefined) delete globalThis.SillyTavern;
+        else globalThis.SillyTavern = previous;
+    }
+});
+
 test('setModelOverride ignores a missing group or member id', () => {
     const settings = { modelOverrides: {} };
 
