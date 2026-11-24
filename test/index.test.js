@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createFakeSillyTavern } from '../test-helpers/fake-sillytavern.js';
 
 /**
  * SillyTavern loads an extension entry module with a dynamic import once the app
@@ -8,59 +9,34 @@ import assert from 'node:assert/strict';
  */
 let importCounter = 0;
 
-function makeSillyTavern() {
-    const listeners = new Map();
-
-    const eventSource = {
-        on(type, handler) {
-            if (!listeners.has(type)) listeners.set(type, []);
-            listeners.get(type).push(handler);
-        },
-        removeListener(type, handler) {
-            const list = listeners.get(type) ?? [];
-            const index = list.indexOf(handler);
-            if (index !== -1) list.splice(index, 1);
-        },
-    };
-
-    return {
-        listeners,
-        emitReady() {
-            for (const handler of [...(listeners.get('app_ready') ?? [])]) handler();
-        },
-        sillyTavern: {
-            SillyTavern: {
-                getContext: () => ({
-                    eventSource,
-                    eventTypes: { APP_READY: 'app_ready' },
-                }),
-            },
-        },
-    };
-}
-
 async function loadIndex({ withSillyTavern = true } = {}) {
-    const fake = makeSillyTavern();
-    const previous = globalThis.SillyTavern;
+    const fake = createFakeSillyTavern({
+        groupId: 'group-1',
+        characters: [{ avatar: 'bob.png', name: 'Bob' }],
+    });
+
+    let restore;
     if (withSillyTavern) {
-        globalThis.SillyTavern = fake.sillyTavern.SillyTavern;
+        restore = fake.install();
     } else {
+        const previous = globalThis.SillyTavern;
         delete globalThis.SillyTavern;
+        restore = () => {
+            if (previous === undefined) delete globalThis.SillyTavern;
+            else globalThis.SillyTavern = previous;
+        };
     }
 
     importCounter += 1;
     const module = await import(`../index.js?load=${importCounter}`);
 
-    return { module, fake, restore: () => {
-        if (previous === undefined) delete globalThis.SillyTavern;
-        else globalThis.SillyTavern = previous;
-    } };
+    return { module, fake, restore };
 }
 
 test('index.js subscribes its entry point to APP_READY', async () => {
     const { fake, restore } = await loadIndex();
     try {
-        assert.equal(fake.listeners.get('app_ready')?.length, 1);
+        assert.equal(fake.state.listeners.get('app_ready')?.length, 1);
     } finally {
         restore();
     }
@@ -82,7 +58,7 @@ test('onExtensionReady initialises every registered feature in registration orde
         module.registerFeature({ name: 'first', init: () => calls.push('first') });
         module.registerFeature({ name: 'second', init: () => calls.push('second') });
 
-        fake.emitReady();
+        fake.emit('app_ready');
 
         assert.deepEqual(calls, ['first', 'second']);
     } finally {
@@ -96,12 +72,12 @@ test('onExtensionReady runs a second time only after disposeExtension', async ()
         let initCalls = 0;
         module.registerFeature({ name: 'counter', init: () => { initCalls += 1; } });
 
-        fake.emitReady();
-        fake.emitReady();
+        fake.emit('app_ready');
+        fake.emit('app_ready');
         assert.equal(initCalls, 1);
 
         module.disposeExtension();
-        fake.emitReady();
+        fake.emit('app_ready');
         assert.equal(initCalls, 2);
     } finally {
         restore();
@@ -114,7 +90,7 @@ test('disposeExtension disposes every registered feature once, newest first', as
         const disposed = [];
         module.registerFeature({ name: 'a', init: () => {}, dispose: () => disposed.push('a') });
         module.registerFeature({ name: 'b', init: () => {}, dispose: () => disposed.push('b') });
-        fake.emitReady();
+        fake.emit('app_ready');
 
         module.disposeExtension();
         module.disposeExtension();
@@ -135,12 +111,51 @@ test('a feature whose init throws does not stop the remaining features', async (
             module.registerFeature({ name: 'broken', init: () => { throw new Error('boom'); } });
             module.registerFeature({ name: 'healthy', init: () => calls.push('healthy') });
 
-            fake.emitReady();
+            fake.emit('app_ready');
 
             assert.deepEqual(calls, ['healthy']);
         } finally {
             console.error = originalError;
         }
+    } finally {
+        restore();
+    }
+});
+
+test('APP_READY wires the request-routing feature to SillyTavern events', async () => {
+    const { module, fake, restore } = await loadIndex();
+    try {
+        fake.context.extensionSettings.st_advanced_group_chat = {
+            modelOverrides: { 'group-1': { 'bob.png': 'bob-model' } },
+        };
+
+        fake.emit('app_ready');
+        fake.emit('group_member_drafted', 0);
+
+        const request = { model: 'st-default-model', char_name: 'Bob', messages: [] };
+        fake.emit('chat_completion_settings_ready', request);
+
+        assert.equal(request.model, 'bob-model');
+    } finally {
+        restore();
+    }
+});
+
+test('disposeExtension removes the request-routing listeners', async () => {
+    const { module, fake, restore } = await loadIndex();
+    try {
+        fake.context.extensionSettings.st_advanced_group_chat = {
+            modelOverrides: { 'group-1': { 'bob.png': 'bob-model' } },
+        };
+
+        fake.emit('app_ready');
+        module.disposeExtension();
+        fake.emit('group_member_drafted', 0);
+
+        const request = { model: 'st-default-model', char_name: 'Bob', messages: [] };
+        fake.emit('chat_completion_settings_ready', request);
+
+        assert.equal(request.model, 'st-default-model');
     } finally {
         restore();
     }

@@ -7,6 +7,7 @@
  */
 
 import { registerAppReady } from './src/extension-lifecycle.js';
+import { initRequestRouting, disposeRequestRouting } from './src/request-routing.js';
 
 const MODULE_NAME = 'st_advanced_group_chat';
 
@@ -71,5 +72,11 @@ export function disposeExtension() {
         }
     }
 }
+
+registerFeature({
+    name: 'request-routing',
+    init: initRequestRouting,
+    dispose: disposeRequestRouting,
+});
 
 registerAppReady(onExtensionReady);
