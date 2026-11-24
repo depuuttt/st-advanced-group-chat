@@ -49,10 +49,21 @@ function pruneAndSave() {
 /**
  * Prunes once at startup and subscribes the group-event handlers.
  *
+ * The startup prune is skipped when the group list is an empty array: a failed
+ * character/group fetch reaches `APP_READY` with `groups` still `[]`, and an
+ * empty list is not proof that saved groups were deleted — pruning against it
+ * would wipe every override, which cannot be undone. Event-driven prunes are
+ * unaffected because `GROUP_UPDATED` and `GROUP_CHAT_DELETED` only fire after
+ * the group list has loaded.
+ *
  * @returns {void}
  */
 export function initOverridePruning() {
-    pruneAndSave();
+    const groups = getContextOrNull()?.groups;
+
+    if (!Array.isArray(groups) || groups.length > 0) {
+        pruneAndSave();
+    }
 
     const context = getContextOrNull();
     const { eventSource, eventTypes } = context ?? {};

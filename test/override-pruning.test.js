@@ -64,6 +64,25 @@ test('initOverridePruning prunes when a group is deleted', () => {
     assert.equal(fake.state.saveCount, 1);
 });
 
+test('initOverridePruning does not prune at startup when no groups have loaded', () => {
+    // A failed /api/characters/all reaches APP_READY with an empty groups
+    // array — that is not proof the groups were deleted, so it must not wipe
+    // the overrides saved against them.
+    const fake = createFakeSillyTavern({ groupId: GROUP, groups: [] });
+    fake.context.extensionSettings.st_advanced_group_chat = { modelOverrides: { [GROUP]: { [ALICE]: 'm' } } };
+    const restore = fake.install();
+
+    try {
+        initOverridePruning();
+
+        const settings = fake.context.extensionSettings.st_advanced_group_chat;
+        assert.deepEqual(settings.modelOverrides, { [GROUP]: { [ALICE]: 'm' } });
+        assert.equal(fake.state.saveCount, 0);
+    } finally {
+        restore();
+    }
+});
+
 test('disposeOverridePruning stops reacting to group events', () => {
     const { fake } = installPruning();
     initOverridePruning();
