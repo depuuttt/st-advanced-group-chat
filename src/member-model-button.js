@@ -197,7 +197,9 @@ export function refreshMemberModelButtons() {
                     openMemberModelInput(getContextOrNull()?.groupId ?? null, memberId);
                 }
             });
-            iconSlot.append(button);
+            // Keep the extension action at the start of the member controls,
+            // before SillyTavern's built-in actions.
+            iconSlot.prepend(button);
         }
 
         const override = groupId && memberId ? getModelOverride(settings, groupId, memberId) : '';
