@@ -5,31 +5,16 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
-
 const read = (name) => readFileSync(join(repoRoot, name), 'utf8').replace(/\r\n/g, '\n');
 
-const claudeHeader = '# CLAUDE.md\n\nThis file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.';
-const agentsHeader = '# AGENTS.md\n\nThis file provides guidance to OpenAI Codex when working with code in this repository.';
-
-/**
- * CLAUDE.md and AGENTS.md carry identical guidance for different agents; only
- * their headers differ. This suite keeps them from drifting apart.
- */
-test('CLAUDE.md and AGENTS.md have identical bodies apart from their headers', () => {
+test('CLAUDE.md points to the shared AGENTS.md guidance', () => {
     const claude = read('CLAUDE.md');
-    const agents = read('AGENTS.md');
-
-    assert.ok(claude.startsWith(claudeHeader), 'CLAUDE.md header changed');
-    assert.ok(agents.startsWith(agentsHeader), 'AGENTS.md header changed');
-
-    const claudeBody = claude.slice(claudeHeader.length);
-    const agentsBody = agents.slice(agentsHeader.length);
-
-    assert.equal(agentsBody, claudeBody, 'AGENTS.md body differs from CLAUDE.md — apply the same change to both files');
+    assert.match(claude, /\[AGENTS\.md\]\(AGENTS\.md\)/);
+    assert.ok(claude.length < 300, 'CLAUDE.md should remain a minimal pointer');
 });
 
-test('both guidance files document the sync rule', () => {
-    for (const name of ['CLAUDE.md', 'AGENTS.md']) {
-        assert.match(read(name), /CLAUDE\.md and AGENTS\.md/i);
-    }
+test('AGENTS.md is the sole home for project guidance', () => {
+    const agents = read('AGENTS.md');
+    assert.match(agents, /tool-agnostic source of guidance/i);
+    assert.doesNotMatch(agents, /OpenAI Codex|Claude Code|claude\.ai\/code/i);
 });

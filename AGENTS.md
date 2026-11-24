@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This file provides guidance to OpenAI Codex when working with code in this repository.
+This file is the shared, tool-agnostic source of guidance for coding assistants working in this repository. `CLAUDE.md` points here; keep project instructions in this file only.
 
 ## What this is
 
@@ -33,10 +33,6 @@ Entry point is [index.js](index.js) (the `js` referenced by [manifest.json](mani
 - Tests re-import modules under fresh query-string URLs (`import(`../index.js?load=${n}`)`) because module state (feature list, observer) persists across imports.
 - DOM-dependent code is tested by injecting fake `document`/`MutationObserver` globals.
 - `test/readme.test.js` asserts README content: if you change documented behavior or the acceptance checklist, update [README.md](README.md) in the same commit or this suite fails.
-
-## Keep CLAUDE.md and AGENTS.md in sync
-
-This repository has two agent-guidance files with identical bodies: `CLAUDE.md` (Claude Code) and `AGENTS.md` (OpenAI Codex). Only the header differs. **Any change to one must be made to the other in the same commit** — commands, architecture notes, conventions, everything. `test/sync.test.js` fails when the bodies drift, so run `npm test` after editing either file.
 
 ## Design docs and SillyTavern reference
 
