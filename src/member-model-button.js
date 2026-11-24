@@ -23,6 +23,9 @@ let observer = null;
 /** @type {boolean} */
 let refreshScheduled = false;
 
+/** @type {{ handle: unknown, cancel: (handle: unknown) => void }|null} */
+let queuedRefresh = null;
+
 /**
  * Returns the live SillyTavern context, or `null` when it is unavailable.
  *
@@ -304,13 +307,17 @@ function scheduleRefresh() {
 
     const run = () => {
         refreshScheduled = false;
+        queuedRefresh = null;
         refreshMemberModelButtons();
     };
 
     if (typeof globalThis.requestAnimationFrame === 'function') {
-        globalThis.requestAnimationFrame(run);
+        queuedRefresh = {
+            handle: globalThis.requestAnimationFrame(run),
+            cancel: (handle) => globalThis.cancelAnimationFrame?.(handle),
+        };
     } else {
-        setTimeout(run, 0);
+        queuedRefresh = { handle: setTimeout(run, 0), cancel: (handle) => clearTimeout(handle) };
     }
 }
 
@@ -352,6 +359,10 @@ export function initMemberModelButtons() {
 export function disposeMemberModelButtons() {
     observer?.disconnect();
     observer = null;
+
+    queuedRefresh?.cancel(queuedRefresh.handle);
+    queuedRefresh = null;
+    refreshScheduled = false;
 
     for (const button of globalThis.document?.querySelectorAll?.(`.${BUTTON_CLASS}`) ?? []) {
         button.remove();

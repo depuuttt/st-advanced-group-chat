@@ -9,6 +9,8 @@ import {
     mutationsTouchMemberList,
     handleButtonKeydown,
     translateText,
+    initMemberModelButtons,
+    disposeMemberModelButtons,
 } from '../src/member-model-button.js';
 
 const GROUP = 'group-1';
@@ -270,5 +272,44 @@ test('getButtonState titles are produced through the translation helper', () => 
         assert.equal(getButtonState('').title, 'Set a model for this member');
     } finally {
         restore();
+    }
+});
+
+test('disposeMemberModelButtons cancels a refresh that is still queued', () => {
+    const cancelled = [];
+    let observerCallback = null;
+    const previous = {
+        document: globalThis.document,
+        MutationObserver: globalThis.MutationObserver,
+        requestAnimationFrame: globalThis.requestAnimationFrame,
+        cancelAnimationFrame: globalThis.cancelAnimationFrame,
+        SillyTavern: globalThis.SillyTavern,
+    };
+
+    globalThis.document = { body: {}, querySelectorAll: () => [] };
+    globalThis.MutationObserver = class {
+        constructor(callback) { observerCallback = callback; }
+        observe() {}
+        disconnect() {}
+    };
+    globalThis.requestAnimationFrame = () => 77;
+    globalThis.cancelAnimationFrame = (handle) => cancelled.push(handle);
+    delete globalThis.SillyTavern;
+
+    try {
+        initMemberModelButtons();
+        const memberList = { nodeType: 1, matches: () => true };
+        observerCallback([{ target: memberList, addedNodes: [] }]);
+
+        disposeMemberModelButtons();
+
+        assert.deepEqual(cancelled, [77]);
+    } finally {
+        globalThis.document = previous.document;
+        globalThis.MutationObserver = previous.MutationObserver;
+        globalThis.requestAnimationFrame = previous.requestAnimationFrame;
+        globalThis.cancelAnimationFrame = previous.cancelAnimationFrame;
+        if (previous.SillyTavern === undefined) delete globalThis.SillyTavern;
+        else globalThis.SillyTavern = previous.SillyTavern;
     }
 });
