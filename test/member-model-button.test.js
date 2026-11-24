@@ -7,6 +7,7 @@ import {
     resolveMemberAvatarId,
     openMemberModelInput,
     mutationsTouchMemberList,
+    handleButtonKeydown,
 } from '../src/member-model-button.js';
 
 const GROUP = 'group-1';
@@ -204,4 +205,27 @@ test('mutationsTouchMemberList ignores an added chat message', () => {
     const chatMessage = makeNode();
 
     assert.equal(mutationsTouchMemberList([{ target: {}, addedNodes: [chatMessage] }]), false);
+});
+
+function makeKeyEvent(key) {
+    const event = { key, prevented: false, stopped: false };
+    event.preventDefault = () => { event.prevented = true; };
+    event.stopPropagation = () => { event.stopped = true; };
+    return event;
+}
+
+test('handleButtonKeydown activates on Enter and Space', () => {
+    for (const key of ['Enter', ' ']) {
+        const event = makeKeyEvent(key);
+        assert.equal(handleButtonKeydown(event), true);
+        assert.equal(event.prevented, true, `${key} should prevent the default scroll`);
+    }
+});
+
+test('handleButtonKeydown ignores every other key', () => {
+    for (const key of ['a', 'Tab', 'Escape', 'ArrowDown']) {
+        const event = makeKeyEvent(key);
+        assert.equal(handleButtonKeydown(event), false);
+        assert.equal(event.prevented, false);
+    }
 });

@@ -85,6 +85,26 @@ export function resolveMemberAvatarId(row) {
 }
 
 /**
+ * Reports whether a keyboard event activates the model button.
+ *
+ * Enter and Space are the activating keys for an element with `role="button"`.
+ * Space scrolls the page by default, so both must be prevented; stopping
+ * propagation keeps SillyTavern's document-level handlers from also firing.
+ *
+ * @param {KeyboardEvent} event The keydown event.
+ * @returns {boolean} True when the key activates the button.
+ */
+export function handleButtonKeydown(event) {
+    if (event?.key !== 'Enter' && event?.key !== ' ') {
+        return false;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    return true;
+}
+
+/**
  * Updates one button's highlight and tooltip to match the saved override.
  *
  * @param {Element} button The model button element.
@@ -134,6 +154,11 @@ export function refreshMemberModelButtons() {
                 // (remove, disable, reorder) from also firing.
                 event.stopPropagation();
                 openMemberModelInput(getContextOrNull()?.groupId ?? null, memberId);
+            });
+            button.addEventListener('keydown', (event) => {
+                if (handleButtonKeydown(event)) {
+                    openMemberModelInput(getContextOrNull()?.groupId ?? null, memberId);
+                }
             });
             iconSlot.append(button);
         }
