@@ -1,0 +1,75 @@
+/**
+ * Advanced Group Chat — SillyTavern UI extension entry point.
+ *
+ * Each feature lives in its own module under `src/` and registers itself here.
+ * Features are initialised once per `APP_READY` and disposed together, so the
+ * extension never attaches duplicate SillyTavern event listeners.
+ */
+
+import { registerAppReady } from './src/extension-lifecycle.js';
+
+const MODULE_NAME = 'st_advanced_group_chat';
+
+/** @type {{ name: string, init: () => void, dispose?: () => void }[]} */
+const features = [];
+
+/** @type {boolean} */
+let initialized = false;
+
+/**
+ * Registers a feature module with the extension.
+ *
+ * Call at module scope, before `APP_READY` fires.
+ *
+ * @param {{ name: string, init: () => void, dispose?: () => void }} feature Feature to register.
+ * @returns {void}
+ */
+export function registerFeature(feature) {
+    if (!feature || typeof feature.init !== 'function') {
+        throw new TypeError(`[${MODULE_NAME}] registerFeature requires an object with an init function`);
+    }
+
+    features.push(feature);
+}
+
+/**
+ * Initialises every registered feature exactly once.
+ *
+ * @returns {void}
+ */
+export function onExtensionReady() {
+    if (initialized) {
+        return;
+    }
+    initialized = true;
+
+    for (const feature of features) {
+        try {
+            feature.init();
+        } catch (error) {
+            console.error(`[${MODULE_NAME}] Feature "${feature.name}" failed to initialise`, error);
+        }
+    }
+}
+
+/**
+ * Disposes every registered feature and re-arms initialisation.
+ *
+ * @returns {void}
+ */
+export function disposeExtension() {
+    if (!initialized) {
+        return;
+    }
+    initialized = false;
+
+    for (const feature of [...features].reverse()) {
+        try {
+            feature.dispose?.();
+        } catch (error) {
+            console.error(`[${MODULE_NAME}] Feature "${feature.name}" failed to dispose`, error);
+        }
+    }
+}
+
+registerAppReady(onExtensionReady);

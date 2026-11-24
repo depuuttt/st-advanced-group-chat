@@ -1,0 +1,16 @@
+/* Advanced Group Chat — extension styles. */
+
+/*
+ * The per-member model button reuses SillyTavern's `right_menu_button` class so
+ * it inherits the existing row-icon sizing and hover treatment. Only the
+ * override-active marker is specific to this extension.
+ */
+.group_member .group_member_icon .st-agc-model-button {
+    cursor: pointer;
+}
+
+/* A member with a saved per-group model is marked with an accent ring. */
+.group_member .group_member_icon .st-agc-model-button.has_override {
+    color: var(--SmartThemeQuoteColor, #ffb347);
+    text-shadow: 0 0 4px var(--SmartThemeQuoteColor, #ffb347);
+}

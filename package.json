@@ -1,0 +1,10 @@
+{
+    "name": "st-advanced-group-chat",
+    "version": "1.0.0",
+    "private": true,
+    "description": "SillyTavern UI extension: per-member models for group chats.",
+    "type": "module",
+    "scripts": {
+        "test": "node --test"
+    }
+}
