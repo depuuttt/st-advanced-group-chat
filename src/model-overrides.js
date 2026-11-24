@@ -12,9 +12,15 @@
 
 const MODULE_NAME = 'st_advanced_group_chat';
 
-const DEFAULT_SETTINGS = Object.freeze({
-    modelOverrides: Object.freeze({}),
-});
+/**
+ * Returns a fresh default settings object on every call. Plain JSON needs no
+ * deep clone; a factory avoids callers sharing (and mutating) one template.
+ *
+ * @returns {{ modelOverrides: object }} Default extension settings.
+ */
+export function createDefaultSettings() {
+    return { modelOverrides: {} };
+}
 
 /**
  * Persists the settings to SillyTavern. Best effort: the override has already
@@ -47,12 +53,13 @@ export function getSettings() {
     }
 
     if (!extensionSettings[MODULE_NAME]) {
-        extensionSettings[MODULE_NAME] = structuredClone(DEFAULT_SETTINGS);
+        extensionSettings[MODULE_NAME] = createDefaultSettings();
     }
 
-    for (const key of Object.keys(DEFAULT_SETTINGS)) {
+    const defaults = createDefaultSettings();
+    for (const key of Object.keys(defaults)) {
         if (!Object.hasOwn(extensionSettings[MODULE_NAME], key)) {
-            extensionSettings[MODULE_NAME][key] = structuredClone(DEFAULT_SETTINGS[key]);
+            extensionSettings[MODULE_NAME][key] = defaults[key];
         }
     }
 
@@ -108,4 +115,48 @@ export function setModelOverride(settings, groupId, memberId, modelName) {
     }
 
     saveSettings();
+}
+
+/**
+ * Removes saved overrides whose group or member no longer exists.
+ *
+ * A group entry is deleted when `groups` holds no group with its ID. Within a
+ * surviving group, a member entry is deleted only when `group.members` is an
+ * array that does not contain it — a group object that has not been fully
+ * loaded keeps its overrides. Never persists; the caller decides when to save.
+ *
+ * @param {object|null} settings Extension settings object.
+ * @param {unknown[]} groups SillyTavern's group list, or something that is not one.
+ * @returns {number} How many overrides (group or member entries) were removed.
+ */
+export function pruneModelOverrides(settings, groups) {
+    if (!settings?.modelOverrides || !Array.isArray(groups)) {
+        return 0;
+    }
+
+    let removed = 0;
+
+    for (const groupId of Object.keys(settings.modelOverrides)) {
+        const group = groups.find((candidate) => candidate?.id === groupId);
+
+        if (!group) {
+            delete settings.modelOverrides[groupId];
+            removed += 1;
+            continue;
+        }
+
+        if (!Array.isArray(group.members)) {
+            continue;
+        }
+
+        const memberIds = settings.modelOverrides[groupId];
+        for (const memberId of Object.keys(memberIds)) {
+            if (!group.members.includes(memberId)) {
+                delete memberIds[memberId];
+                removed += 1;
+            }
+        }
+    }
+
+    return removed;
 }

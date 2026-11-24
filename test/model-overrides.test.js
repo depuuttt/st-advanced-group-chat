@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createFakeSillyTavern } from '../test-helpers/fake-sillytavern.js';
-import { getModelOverride, setModelOverride, getSettings } from '../src/model-overrides.js';
+import { getModelOverride, setModelOverride, getSettings, createDefaultSettings, pruneModelOverrides } from '../src/model-overrides.js';
 
 const GROUP_A = 'group-a';
 const GROUP_B = 'group-b';
@@ -125,4 +125,49 @@ test('setModelOverride ignores a missing group or member id', () => {
     setModelOverride(settings, GROUP_A, undefined, 'orphan-model');
 
     assert.deepEqual(settings.modelOverrides, {});
+});
+
+test('createDefaultSettings returns a fresh object each call', () => {
+    const first = createDefaultSettings();
+    first.modelOverrides['g1'] = { 'a.png': 'm' };
+    assert.deepEqual(createDefaultSettings(), { modelOverrides: {} });
+});
+
+test('pruneModelOverrides removes an override for a deleted group', () => {
+    const settings = { modelOverrides: { 'gone-group': { 'a.png': 'm' } } };
+    assert.equal(pruneModelOverrides(settings, []), 1);
+    assert.deepEqual(settings.modelOverrides, {});
+});
+
+test('pruneModelOverrides removes an override for a member no longer in the group', () => {
+    const settings = { modelOverrides: { g1: { 'a.png': 'm', 'b.png': 'm' } } };
+    const groups = [{ id: 'g1', members: ['b.png'] }];
+    assert.equal(pruneModelOverrides(settings, groups), 1);
+    assert.deepEqual(settings.modelOverrides, { g1: { 'b.png': 'm' } });
+});
+
+test('pruneModelOverrides keeps overrides that are still in use', () => {
+    const settings = { modelOverrides: { g1: { 'a.png': 'm' } } };
+    const groups = [{ id: 'g1', members: ['a.png'] }];
+    assert.equal(pruneModelOverrides(settings, groups), 0);
+    assert.deepEqual(settings.modelOverrides, { g1: { 'a.png': 'm' } });
+});
+
+test('pruneModelOverrides leaves a member override alone in the groups that still contain them', () => {
+    const settings = { modelOverrides: { g1: { 'a.png': 'm1' }, g2: { 'a.png': 'm2' } } };
+    const groups = [{ id: 'g1', members: [] }, { id: 'g2', members: ['a.png'] }];
+    assert.equal(pruneModelOverrides(settings, groups), 1);
+    assert.deepEqual(settings.modelOverrides, { g1: {}, g2: { 'a.png': 'm2' } });
+});
+
+test('pruneModelOverrides is a no-op when groups is not an array', () => {
+    const settings = { modelOverrides: { g1: { 'a.png': 'm' } } };
+    assert.equal(pruneModelOverrides(settings, undefined), 0);
+    assert.deepEqual(settings.modelOverrides, { g1: { 'a.png': 'm' } });
+});
+
+test('pruneModelOverrides keeps overrides when a group has no members array', () => {
+    const settings = { modelOverrides: { g1: { 'a.png': 'm' } } };
+    assert.equal(pruneModelOverrides(settings, [{ id: 'g1' }]), 0);
+    assert.deepEqual(settings.modelOverrides, { g1: { 'a.png': 'm' } });
 });
