@@ -41,3 +41,9 @@ test('README includes practical troubleshooting guidance', () => {
     assert.match(readme, /model icon is missing/i);
     assert.match(readme, /extension does not load/i);
 });
+
+test('README describes the member row markup accurately', () => {
+    assert.match(readme, /jQuery/i);
+    assert.match(readme, /data-chid/);
+    assert.doesNotMatch(readme, /carry the member's avatar as `data-id`/i);
+});

@@ -74,6 +74,16 @@ test('resolveMemberAvatarId prefers the row data-id attribute', () => {
     }
 });
 
+test('resolveMemberAvatarId prefers jQuery stored data over a data-id attribute', () => {
+    const row = makeRow({ id: 'attribute.png' });
+    const restoreJquery = installFakeJquery(new Map([[row, { id: 'store.png' }]]));
+    try {
+        assert.equal(resolveMemberAvatarId(row), 'store.png');
+    } finally {
+        restoreJquery();
+    }
+});
+
 test('resolveMemberAvatarId falls back to jQuery stored data when the attribute is absent', () => {
     const row = makeRow();
     const restoreJquery = installFakeJquery(new Map([[row, { id: 'alice.png' }]]));

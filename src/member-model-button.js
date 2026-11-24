@@ -85,23 +85,26 @@ export function getButtonState(override) {
 /**
  * Reads the avatar ID of the character a group member row represents.
  *
- * SillyTavern sets the row's `data-id` through jQuery's data store, which does
- * not write a DOM attribute, so the row's `data-chid` attribute is used as a
- * fallback. Avatar ID is the storage key, never the display name.
+ * SillyTavern sets the row's avatar with `template.data('id', avatar)`, which
+ * writes only jQuery's data store — no DOM attribute — so the store is tried
+ * first. The `data-id` attribute branch is a forward-compatible fallback for a
+ * future SillyTavern that writes the attribute directly, and `data-chid` maps
+ * to the character index as a last resort. Avatar ID is the storage key, never
+ * the display name.
  *
  * @param {Element} row A `.group_member` row.
  * @returns {string|null} Avatar ID, or null when the row identifies no member.
  */
 export function resolveMemberAvatarId(row) {
-    const fromAttribute = row.getAttribute('data-id');
-    if (fromAttribute) {
-        return fromAttribute;
-    }
-
     const jQuery = globalThis.jQuery ?? globalThis.$;
     const fromDataStore = jQuery?.(row)?.data?.('id');
     if (typeof fromDataStore === 'string' && fromDataStore) {
         return fromDataStore;
+    }
+
+    const fromAttribute = row.getAttribute('data-id');
+    if (fromAttribute) {
+        return fromAttribute;
     }
 
     const characterId = row.getAttribute('data-chid');

@@ -49,6 +49,10 @@ Enter the model identifier used by your provider, not necessarily the display na
 - **The model icon is missing:** Check that the extension is enabled, then reload SillyTavern and reopen the group-management panel.
 - **The extension does not load:** Open the browser console (usually F12) and look for messages beginning with `[st_advanced_group_chat]`. After a SillyTavern update, an extension update may be needed if its group controls or events have changed.
 
+## Compatibility
+
+The extension is built for SillyTavern 1.19.1. It identifies group member rows the way SillyTavern renders them: the row's avatar ID lives in jQuery's data store under `data-id` and the character index in the `data-chid` attribute, and the extension reads either.
+
 ## License
 
 See [LICENSE](LICENSE).
