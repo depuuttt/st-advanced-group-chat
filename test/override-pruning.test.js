@@ -95,3 +95,14 @@ test('disposeOverridePruning stops reacting to group events', () => {
     assert.deepEqual(settings.modelOverrides, { [GROUP]: { [ALICE]: 'm' } });
     assert.equal(fake.state.saveCount, 0);
 });
+
+test('initOverridePruning prunes a hideAvatars entry for a deleted group', () => {
+    const { fake } = installPruning();
+    fake.context.extensionSettings.st_advanced_group_chat.hideAvatars = { 'gone-group': true };
+
+    initOverridePruning();
+
+    const settings = fake.context.extensionSettings.st_advanced_group_chat;
+    assert.deepEqual(settings.hideAvatars, {});
+    assert.equal(fake.state.saveCount, 1);
+});

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createFakeSillyTavern } from '../test-helpers/fake-sillytavern.js';
-import { getModelOverride, setModelOverride, getSettings, createDefaultSettings, pruneModelOverrides } from '../src/model-overrides.js';
+import { getModelOverride, setModelOverride, getHideAvatars, setHideAvatars, pruneHiddenAvatars, getSettings, createDefaultSettings, pruneModelOverrides } from '../src/model-overrides.js';
 
 const GROUP_A = 'group-a';
 const GROUP_B = 'group-b';
@@ -14,7 +14,7 @@ test('getSettings initialises the extension settings key on first use', () => {
     try {
         const settings = getSettings();
 
-        assert.deepEqual(settings, { modelOverrides: {} });
+        assert.deepEqual(settings, { modelOverrides: {}, hideAvatars: {} });
         assert.equal(fake.context.extensionSettings.st_advanced_group_chat, settings);
     } finally {
         restore();
@@ -130,7 +130,8 @@ test('setModelOverride ignores a missing group or member id', () => {
 test('createDefaultSettings returns a fresh object each call', () => {
     const first = createDefaultSettings();
     first.modelOverrides['g1'] = { 'a.png': 'm' };
-    assert.deepEqual(createDefaultSettings(), { modelOverrides: {} });
+    first.hideAvatars['g1'] = true;
+    assert.deepEqual(createDefaultSettings(), { modelOverrides: {}, hideAvatars: {} });
 });
 
 test('pruneModelOverrides removes an override for a deleted group', () => {
@@ -170,4 +171,46 @@ test('pruneModelOverrides keeps overrides when a group has no members array', ()
     const settings = { modelOverrides: { g1: { 'a.png': 'm' } } };
     assert.equal(pruneModelOverrides(settings, [{ id: 'g1' }]), 0);
     assert.deepEqual(settings.modelOverrides, { g1: { 'a.png': 'm' } });
+});
+
+test('getHideAvatars returns false when nothing is saved', () => {
+    assert.equal(getHideAvatars({ hideAvatars: {} }, GROUP_A), false);
+    assert.equal(getHideAvatars(undefined, GROUP_A), false);
+});
+
+test('setHideAvatars stores true under the group and persists the save', () => {
+    const fake = createFakeSillyTavern();
+    const restore = fake.install();
+    try {
+        setHideAvatars(getSettings(), GROUP_A, true);
+        assert.equal(getHideAvatars(fake.context.extensionSettings.st_advanced_group_chat, GROUP_A), true);
+        assert.equal(fake.state.saveCount, 1);
+    } finally {
+        restore();
+    }
+});
+
+test('setHideAvatars deletes the entry when hidden is false', () => {
+    const settings = { hideAvatars: { [GROUP_A]: true } };
+    setHideAvatars(settings, GROUP_A, false);
+    assert.deepEqual(settings.hideAvatars, {});
+});
+
+test('setHideAvatars keeps each group separate', () => {
+    const settings = { hideAvatars: {} };
+    setHideAvatars(settings, GROUP_A, true);
+    assert.equal(getHideAvatars(settings, GROUP_B), false);
+});
+
+test('pruneHiddenAvatars removes the entry of a deleted group', () => {
+    const settings = { hideAvatars: { 'gone-group': true, g1: true } };
+    const groups = [{ id: 'g1' }];
+    assert.equal(pruneHiddenAvatars(settings, groups), 1);
+    assert.deepEqual(settings.hideAvatars, { g1: true });
+});
+
+test('pruneHiddenAvatars is a no-op when groups is not an array', () => {
+    const settings = { hideAvatars: { g1: true } };
+    assert.equal(pruneHiddenAvatars(settings, undefined), 0);
+    assert.deepEqual(settings.hideAvatars, { g1: true });
 });

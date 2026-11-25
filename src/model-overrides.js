@@ -1,10 +1,11 @@
 /**
- * Per-group, per-member model overrides.
+ * Per-group, per-member model overrides plus per-group hidden-avatar flags.
  *
  * Storage lives in this extension's own SillyTavern extension settings, under a
  * unique key, shaped as:
  *
  *   extensionSettings['st_advanced_group_chat'].modelOverrides[groupId][avatarId] = 'model-name'
+ *   extensionSettings['st_advanced_group_chat'].hideAvatars[groupId] = true
  *
  * Members are keyed by avatar ID rather than display name, because two characters
  * in the same group can share a name. API keys are never stored here.
@@ -16,10 +17,10 @@ const MODULE_NAME = 'st_advanced_group_chat';
  * Returns a fresh default settings object on every call. Plain JSON needs no
  * deep clone; a factory avoids callers sharing (and mutating) one template.
  *
- * @returns {{ modelOverrides: object }} Default extension settings.
+ * @returns {{ modelOverrides: object, hideAvatars: object }} Default extension settings.
  */
 export function createDefaultSettings() {
-    return { modelOverrides: {} };
+    return { modelOverrides: {}, hideAvatars: {} };
 }
 
 /**
@@ -155,6 +156,80 @@ export function pruneModelOverrides(settings, groups) {
                 delete memberIds[memberId];
                 removed += 1;
             }
+        }
+    }
+
+    return removed;
+}
+
+/**
+ * Reports whether avatars are hidden in one group.
+ *
+ * @param {object|null} settings Extension settings object.
+ * @param {string} groupId Group ID.
+ * @returns {boolean} True when the saved flag for that group is true.
+ */
+export function getHideAvatars(settings, groupId) {
+    if (!groupId) {
+        return false;
+    }
+
+    return Boolean(settings?.hideAvatars?.[groupId]);
+}
+
+/**
+ * Saves or clears the hidden-avatars flag for one group.
+ *
+ * Setting `hidden` to false deletes the entry, putting the group back on the
+ * default (avatars shown). Mirrors `setModelOverride`'s persistence pattern.
+ *
+ * @param {object|null} settings Extension settings object.
+ * @param {string} groupId Group ID.
+ * @param {boolean} hidden Whether avatars are hidden in that group.
+ * @returns {void}
+ */
+export function setHideAvatars(settings, groupId, hidden) {
+    if (!settings || !groupId) {
+        return;
+    }
+
+    if (!settings.hideAvatars) {
+        settings.hideAvatars = {};
+    }
+
+    if (hidden) {
+        settings.hideAvatars[groupId] = true;
+    } else {
+        delete settings.hideAvatars[groupId];
+    }
+
+    saveSettings();
+}
+
+/**
+ * Removes saved hidden-avatar flags whose group no longer exists.
+ *
+ * Mirrors `pruneModelOverrides`' group-level rule: a flag is deleted when
+ * `groups` holds no group with its ID. Never persists; the caller decides when
+ * to save.
+ *
+ * @param {object|null} settings Extension settings object.
+ * @param {unknown[]} groups SillyTavern's group list, or something that is not one.
+ * @returns {number} How many group entries were removed.
+ */
+export function pruneHiddenAvatars(settings, groups) {
+    if (!settings?.hideAvatars || !Array.isArray(groups)) {
+        return 0;
+    }
+
+    let removed = 0;
+
+    for (const groupId of Object.keys(settings.hideAvatars)) {
+        const group = groups.find((candidate) => candidate?.id === groupId);
+
+        if (!group) {
+            delete settings.hideAvatars[groupId];
+            removed += 1;
         }
     }
 
