@@ -36,6 +36,14 @@ To go back to the model selected in **API Connections**, open the member's model
 
 Enter the model identifier used by your provider, not necessarily the display name shown in a model list. Check your provider's documentation or model settings if you are unsure. Advanced Group Chat does not show a model list or check whether a name is valid.
 
+## Hide member avatars
+
+In the group-management panel's **Current Members** section, a toggle sits under the member-list pagination (the bar with the page arrows). Select it to hide every member's avatar image in that group's list — the rows become a plain list of names, with more room for the members themselves. Select it again to bring the images back.
+
+Each group remembers its own choice, so hiding avatars in one group leaves the others as they were. The floating popout of the member list follows the same setting.
+
+This is purely visual: it does not change who is in the group or how the chat behaves, and nothing about the chat changes.
+
 ## Important to know
 
 - This works in group chats using **Chat Completion**. It does not affect one-on-one chats or **Text Completion**.
@@ -47,6 +55,7 @@ Enter the model identifier used by your provider, not necessarily the display na
 ## Troubleshooting
 
 - **The model choice has no effect:** Check that the group uses Chat Completion, that the model name is correct for your provider, and that the model is available through the current connection.
+- **The hide-avatars toggle is missing:** Check that the extension is enabled and loaded (see below), then reopen the group-management panel.
 - **The model icon is missing:** Check that the extension is enabled, then reload SillyTavern and reopen the group-management panel.
 - **The member row icons show words instead of symbols:** The bundled font may not have loaded. Reload SillyTavern; if it persists, confirm the extension's `fonts/material-symbols-rounded.woff2` file is present in the installed copy.
 - **The extension does not load:** Open the browser console (usually F12) and look for messages beginning with `[st_advanced_group_chat]`. After a SillyTavern update, an extension update may be needed if its group controls or events have changed.

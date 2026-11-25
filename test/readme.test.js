@@ -52,3 +52,10 @@ test('README documents the Material Symbols icon source', () => {
     assert.match(readme, /Material Symbols/i);
     assert.match(readme, /bundled|offline|no internet|without an internet connection/i);
 });
+
+test('README explains the hide-member-avatars toggle', () => {
+    assert.match(readme, /^## Hide member avatars$/m);
+    assert.match(readme, /saved separately for each group|each group remembers/i);
+    assert.match(readme, /does not (?:change|affect).*chat|nothing about the chat changes/i);
+    assert.match(readme, /pagination|Current Members/i);
+});
