@@ -163,3 +163,102 @@ test('disposeExtension removes the request-routing listeners', async () => {
         restore();
     }
 });
+
+/**
+ * A minimal fake DOM element: class list synced with `className`, a `dataset`
+ * that reflects to `data-*` attributes, and children that `querySelector` can
+ * search by class. Enough for member-model-button to add its button and for
+ * material-icons to convert the row's buttons.
+ */
+function makeFakeElement(tag = 'div') {
+    const classes = new Set();
+    const attrs = {};
+    const children = [];
+    const dataKey = (k) => 'data-' + k.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase());
+    const el = {
+        tagName: tag,
+        textContent: '',
+        title: '',
+        _children: children,
+        get className() { return [...classes].join(' '); },
+        set className(v) {
+            classes.clear();
+            String(v).split(/\s+/).filter(Boolean).forEach((c) => classes.add(c));
+        },
+        classList: {
+            contains: (c) => classes.has(c),
+            add: (...cs) => cs.forEach((c) => classes.add(c)),
+            remove: (...cs) => cs.forEach((c) => classes.delete(c)),
+            toggle: (c, force) => {
+                const on = force === undefined ? !classes.has(c) : force;
+                on ? classes.add(c) : classes.delete(c);
+                return on;
+            },
+        },
+        dataset: new Proxy({}, {
+            set: (_t, k, v) => { attrs[dataKey(k)] = String(v); return true; },
+            get: (_t, k) => attrs[dataKey(k)],
+        }),
+        setAttribute: (k, v) => { attrs[k] = String(v); },
+        getAttribute: (k) => (k in attrs ? attrs[k] : null),
+        addEventListener: () => {},
+        prepend: (child) => children.unshift(child),
+        appendChild: (child) => { children.push(child); return child; },
+        remove: () => {},
+        querySelector: (sel) => {
+            const cls = sel.startsWith('.') ? sel.slice(1) : null;
+            return cls ? children.find((c) => c.classList.contains(cls)) ?? null : null;
+        },
+    };
+    return el;
+}
+
+test('APP_READY composes member-model-button and material-icons on a member row', async () => {
+    const { fake, restore } = await loadIndex();
+    const disableButton = makeFakeElement();
+    disableButton.className = 'right_menu_button fa-solid fa-lg fa-comment-slash';
+    disableButton.setAttribute('data-action', 'disable');
+    const iconSlot = makeFakeElement();
+    iconSlot.classList.add('group_member_icon');
+    iconSlot._children.push(disableButton);
+    const row = makeFakeElement();
+    row.classList.add('group_member');
+    row.setAttribute('data-id', 'bob.png');
+    row.querySelector = (sel) => {
+        if (sel === '.group_member_icon') return iconSlot;
+        if (sel.startsWith('.')) return iconSlot._children.find((c) => c.classList.contains(sel.slice(1))) ?? null;
+        return null;
+    };
+
+    const head = makeFakeElement('head');
+    head.querySelector = (sel) => (sel.startsWith('#')
+        ? head._children.find((el) => el.getAttribute('id') === sel.slice(1)) ?? null
+        : null);
+    const doc = {
+        head,
+        createElement: (tag) => makeFakeElement(tag),
+        querySelectorAll: (selector) => {
+            if (selector === '.rm_group_members .group_member') return [row];
+            if (selector === '.rm_group_members .right_menu_button') return iconSlot._children;
+            return [];
+        },
+    };
+
+    const previous = globalThis.document;
+    globalThis.document = doc;
+    try {
+        fake.emit('app_ready');
+    } finally {
+        if (previous === undefined) delete globalThis.document;
+        else globalThis.document = previous;
+        restore();
+    }
+
+    // member-model-button added the model button; material-icons converted both.
+    const modelButton = iconSlot._children.find((c) => c.classList.contains('st-agc-model-button'));
+    assert.ok(modelButton, 'model button was added');
+    assert.equal(modelButton.textContent, 'smart_toy');
+    assert.equal(disableButton.textContent, 'comments_disabled');
+    assert.ok(disableButton.classList.contains('st-agc-material-icon'));
+    assert.equal(disableButton.getAttribute('data-action'), 'disable');
+});

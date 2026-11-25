@@ -7,6 +7,7 @@
  */
 
 import { getModelOverride, setModelOverride, getSettings } from './model-overrides.js';
+import { applyMaterialIcons } from './material-icons.js';
 
 const MODULE_NAME = 'st_advanced_group_chat';
 
@@ -205,6 +206,10 @@ export function refreshMemberModelButtons() {
         const override = groupId && memberId ? getModelOverride(settings, groupId, memberId) : '';
         applyButtonState(button, override);
     }
+
+    // The freshly rendered rows carry Font Awesome icons; convert the whole set
+    // (ours and SillyTavern's built-ins) to Material Symbols in the same pass.
+    applyMaterialIcons(doc);
 }
 
 /**

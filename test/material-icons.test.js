@@ -4,9 +4,13 @@ import {
     MATERIAL_BY_ACTION,
     applyMaterialIcons,
     restoreFontAwesomeIcons,
+    injectMaterialSymbolsFont,
+    initMaterialIcons,
+    disposeMaterialIcons,
 } from '../src/material-icons.js';
 
 const MEMBER_SELECTOR = '.rm_group_members .right_menu_button';
+const FONT_LINK_HREF = 'https://fonts.googleapis.com/css2?family+Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block';
 
 function makeButton({ action = null, className = '', text = '' } = {}) {
     const classes = new Set(className.split(/\s+/).filter(Boolean));
@@ -127,4 +131,124 @@ test('restoreFontAwesomeIcons reverses a converted button and leaves others unto
     assert.equal(converted.textContent, '');
     assert.equal(converted.getAttribute('data-action'), 'disable');
     assert.equal(untouched.className(), 'right_menu_button fa-solid fa-comment-slash');
+});
+
+/** A fake element for the injected <link>: attributes, children, and remove(). */
+function makeFakeElement(tag = 'div') {
+    const attrs = {};
+    const children = [];
+    const el = {
+        tagName: tag,
+        textContent: '',
+        _children: children,
+        _parent: null,
+        setAttribute: (k, v) => { attrs[k] = String(v); },
+        getAttribute: (k) => (k in attrs ? attrs[k] : null),
+        appendChild: (child) => { child._parent = el; children.push(child); return child; },
+        remove: () => {
+            if (el._parent) {
+                const i = el._parent._children.indexOf(el);
+                if (i >= 0) el._parent._children.splice(i, 1);
+            }
+        },
+    };
+    return el;
+}
+
+/** A fake document with a head that records appended children and member-list buttons. */
+function makeFakeDocument({ buttons = [] } = {}) {
+    const head = makeFakeElement('head');
+    head.querySelector = (sel) => (sel.startsWith('#')
+        ? head._children.find((el) => el.getAttribute('id') === sel.slice(1)) ?? null
+        : null);
+    return {
+        head,
+        createElement: (tag) => makeFakeElement(tag),
+        querySelectorAll: (selector) => (selector === MEMBER_SELECTOR ? buttons : []),
+    };
+}
+
+/** Runs `fn` with globalThis.document set to `doc`, restoring the previous value. */
+function withDocument(doc, fn) {
+    const previous = globalThis.document;
+    if (doc === undefined) delete globalThis.document;
+    else globalThis.document = doc;
+    try {
+        return fn();
+    } finally {
+        if (previous === undefined) delete globalThis.document;
+        else globalThis.document = previous;
+    }
+}
+
+test('injectMaterialSymbolsFont appends the pinned stylesheet link once', () => {
+    const doc = makeFakeDocument();
+
+    injectMaterialSymbolsFont(doc);
+
+    assert.equal(doc.head._children.length, 1);
+    const link = doc.head._children[0];
+    assert.equal(link.getAttribute('id'), 'st-agc-material-symbols-css');
+    assert.equal(link.getAttribute('rel'), 'stylesheet');
+    assert.equal(link.getAttribute('href'), FONT_LINK_HREF);
+
+    injectMaterialSymbolsFont(doc);
+    assert.equal(doc.head._children.length, 1);
+});
+
+test('initMaterialIcons injects the font and converts member buttons', () => {
+    const button = makeButton({ action: 'disable', className: 'right_menu_button fa-solid fa-comment-slash' });
+    const doc = makeFakeDocument({ buttons: [button] });
+
+    withDocument(doc, () => initMaterialIcons());
+
+    assert.equal(doc.head._children.length, 1);
+    assert.ok(button.classList.contains('st-agc-material-icon'));
+    assert.equal(button.textContent, 'comments_disabled');
+});
+
+test('disposeMaterialIcons restores buttons and removes the font link', () => {
+    const button = makeButton({
+        action: 'disable',
+        className: 'right_menu_button st-agc-material-icon',
+        text: 'comments_disabled',
+    });
+    const doc = makeFakeDocument({ buttons: [button] });
+    injectMaterialSymbolsFont(doc);
+
+    withDocument(doc, () => disposeMaterialIcons());
+
+    assert.equal(button.classList.contains('st-agc-material-icon'), false);
+    assert.ok(button.classList.contains('fa-solid'));
+    assert.ok(button.classList.contains('fa-comment-slash'));
+    assert.equal(button.textContent, '');
+    assert.equal(doc.head._children.length, 0);
+});
+
+test('disposeMaterialIcons warns instead of throwing without a document', () => {
+    const originalWarn = console.warn;
+    let warned = false;
+    console.warn = () => { warned = true; };
+    try {
+        withDocument(undefined, () => {
+            assert.doesNotThrow(() => disposeMaterialIcons());
+        });
+        assert.equal(warned, true);
+    } finally {
+        console.warn = originalWarn;
+    }
+});
+
+test('initMaterialIcons warns instead of throwing without a document', () => {
+    const originalWarn = console.warn;
+    let warned = false;
+    console.warn = () => { warned = true; };
+    try {
+        withDocument(undefined, () => {
+            assert.doesNotThrow(() => initMaterialIcons());
+        });
+        assert.equal(warned, true);
+    } finally {
+        console.warn = originalWarn;
+    }
 });
