@@ -57,6 +57,7 @@ export function createFakeSillyTavern({ groupId = null, characters = [], groups 
             TEXT_COMPLETION_SETTINGS_READY: 'text_completion_settings_ready',
             GROUP_UPDATED: 'group_updated',
             GROUP_CHAT_DELETED: 'group_chat_deleted',
+            GROUP_SELECTED: 'groupSelected',
         },
     };
 

@@ -5,8 +5,11 @@ import {
     getToggleState,
     syncHideAvatarUI,
     toggleHideAvatars,
+    getEditorGroupId,
+    handleGroupSelected,
     initHideMemberAvatars,
     disposeHideMemberAvatars,
+    __resetEditorGroupIdForTests,
 } from '../src/hide-member-avatars.js';
 
 const GROUP = 'group-1';
@@ -73,6 +76,10 @@ function makeElement(tag = 'div') {
         querySelector: (sel) => {
             const cls = sel.startsWith('.') ? sel.slice(1) : null;
             return cls ? children.find((c) => c.classList.contains(cls)) ?? null : null;
+        },
+        querySelectorAll: (sel) => {
+            const cls = sel.startsWith('.') ? sel.slice(1) : null;
+            return cls ? children.filter((c) => c.classList.contains(cls)) : [];
         },
         click() {
             for (const { type, fn } of el._listeners) {
@@ -198,6 +205,7 @@ test('toggleHideAvatars flips the saved state and re-syncs the containers', () =
 });
 
 test('syncHideAvatarUI applies the state of the group SillyTavern has open', () => {
+    __resetEditorGroupIdForTests();
     const container = makeElement();
     container.classList.add('rm_group_members');
 
@@ -212,6 +220,75 @@ test('syncHideAvatarUI applies the state of the group SillyTavern has open', () 
         fake.context.groupId = GROUP;
         syncHideAvatarUI();
         assert.equal(container.classList.contains(HIDDEN_CLASS), false, 'group-1 shown → class off');
+    } finally {
+        restore();
+    }
+});
+
+test('getEditorGroupId prefers the group the editor last selected', () => {
+    __resetEditorGroupIdForTests();
+    const { fake, restore } = installDocument();
+    try {
+        // With no editor selection yet, the chat group is the fallback.
+        assert.equal(getEditorGroupId(), GROUP, 'falls back to the chat group');
+
+        handleGroupSelected({ detail: { id: 'group-2' } });
+        assert.equal(getEditorGroupId(), 'group-2');
+
+        handleGroupSelected({ detail: { id: 'group-2' } });
+        assert.equal(getEditorGroupId(), 'group-2');
+
+        // The chat's selected group moving must not override the editor's group.
+        fake.context.groupId = 'group-9';
+        assert.equal(getEditorGroupId(), 'group-2');
+    } finally {
+        restore();
+    }
+});
+
+test('getEditorGroupId falls back to the chat group when the editor never selected one', () => {
+    __resetEditorGroupIdForTests();
+    const { fake, restore } = installDocument();
+    try {
+        fake.context.groupId = 'group-7';
+        assert.equal(getEditorGroupId(), 'group-7');
+    } finally {
+        restore();
+    }
+});
+
+test('toggleHideAvatars writes to the group the editor shows, not the open chat', () => {
+    const container = makeElement();
+    container.classList.add('rm_group_members');
+    const pagination = makeElement();
+    const parent = makeElement();
+    pagination.parentElement = parent;
+    parent.appendChild(pagination);
+    parent.appendChild(container);
+
+    const { fake, restore } = installDocument({ containers: [container], paginations: [pagination] });
+    try {
+        // The chat has group-1 open; the editor is showing group-2.
+        fake.context.groupId = GROUP;
+        handleGroupSelected({ detail: { id: 'group-2' } });
+
+        toggleHideAvatars();
+
+        const settings = fake.context.extensionSettings.st_advanced_group_chat;
+        assert.equal(settings.hideAvatars['group-2'], true, 'the editor group was hidden');
+        assert.equal(settings.hideAvatars[GROUP], undefined, 'the chat group was left alone');
+        assert.ok(container.classList.contains(HIDDEN_CLASS));
+    } finally {
+        restore();
+    }
+});
+
+test('handleGroupSelected with no editor group falls back to the chat group', () => {
+    const { fake, restore } = installDocument();
+    try {
+        fake.context.groupId = 'group-5';
+        handleGroupSelected({ detail: { id: null } });
+        assert.equal(getEditorGroupId(), 'group-5');
     } finally {
         restore();
     }
@@ -239,6 +316,64 @@ test('syncHideAvatarUI inserts one button after every pagination container', () 
             assert.ok(button.classList.contains('st-agc-material-icon'));
             assert.equal(button.textContent, 'visibility');
         }
+    } finally {
+        restore();
+    }
+});
+
+test('syncHideAvatarUI does not duplicate the button on a second sync', () => {
+    const pagination = makeElement();
+    const parent = makeElement();
+    pagination.parentElement = parent;
+    parent.appendChild(pagination);
+
+    const { restore } = installDocument({ paginations: [pagination] });
+    try {
+        syncHideAvatarUI();
+        syncHideAvatarUI();
+
+        const buttons = parent._children.filter((c) => c.classList.contains(BUTTON_CLASS));
+        assert.equal(buttons.length, 1, 'the live button is reused, not duplicated');
+    } finally {
+        restore();
+    }
+});
+
+test('syncHideAvatarUI replaces a stale button that is not the immediate sibling', () => {
+    const pagination = makeElement();
+    const parent = makeElement();
+    pagination.parentElement = parent;
+    parent.appendChild(pagination);
+
+    // A leftover button elsewhere in the parent (e.g. after a re-render moved
+    // nodes around) must not survive as a second, dead toggle.
+    const stale = makeElement();
+    stale.className = `${BUTTON_CLASS} st-agc-material-icon`;
+    parent.appendChild(stale);
+
+    const { restore } = installDocument({ paginations: [pagination] });
+    try {
+        syncHideAvatarUI();
+
+        const buttons = parent._children.filter((c) => c.classList.contains(BUTTON_CLASS));
+        assert.equal(buttons.length, 1, 'the stale button was replaced');
+        assert.ok(stale._removed, 'the stale button was removed');
+        assert.notEqual(buttons[0], stale);
+    } finally {
+        restore();
+    }
+});
+
+test('syncHideAvatarUI skips a pagination with no parent', () => {
+    const orphan = makeElement();
+    orphan.parentElement = null;
+    orphan.parentNode = null;
+
+    const { restore } = installDocument({ paginations: [orphan] });
+    try {
+        syncHideAvatarUI();
+        // No throw; nothing to assert beyond survival.
+        assert.equal(orphan._children.length, 0);
     } finally {
         restore();
     }
@@ -273,6 +408,20 @@ test('initHideMemberAvatars twice starts one observer', () => {
         initHideMemberAvatars();
         initHideMemberAvatars();
         assert.equal(getObserverCount(), 1, 'a second init must not attach a second observer');
+    } finally {
+        disposeHideMemberAvatars();
+        restore();
+    }
+});
+
+test('initHideMemberAvatars subscribes to the editor group selection', () => {
+    const { fake, restore } = installDocument();
+    try {
+        initHideMemberAvatars();
+
+        handleGroupSelected({ detail: { id: 'group-3' } });
+        assert.equal(getEditorGroupId(), 'group-3');
+        assert.equal(fake.state.listeners.get('groupSelected')?.length, 1, 'one groupSelected listener');
     } finally {
         disposeHideMemberAvatars();
         restore();

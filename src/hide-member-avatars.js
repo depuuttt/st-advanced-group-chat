@@ -25,6 +25,16 @@ const HIDDEN_CLASS = 'st-agc-hide-avatars';
 /** @type {MutationObserver|null} */
 let observer = null;
 
+/**
+ * The group whose member list the editor last rendered. SillyTavern's
+ * `context.groupId` is the group whose *chat* is open, which is not always the
+ * group on screen in the editor (and is null while creating a new group), so
+ * the editor's own selection is tracked from its `groupSelected` event.
+ *
+ * @type {string|null}
+ */
+let editorGroupId = null;
+
 /** @type {boolean} */
 let refreshScheduled = false;
 
@@ -46,6 +56,34 @@ function getContextOrNull() {
 }
 
 /**
+ * Records the group the editor just selected.
+ *
+ * Subscribed to SillyTavern's `groupSelected` event, which carries
+ * `{ detail: { id, group } }` with the editor's group id (null while creating
+ * a new group).
+ *
+ * @param {{ detail?: { id?: unknown } }} [event] Event payload.
+ * @returns {void}
+ */
+export function handleGroupSelected(event) {
+    const id = event?.detail?.id;
+    editorGroupId = typeof id === 'string' && id ? id : null;
+    syncHideAvatarUI();
+}
+
+/**
+ * Returns the group whose member list the editor is showing.
+ *
+ * Prefers the editor's last `groupSelected` id; falls back to the chat's
+ * selected group when the editor has not selected one yet.
+ *
+ * @returns {string|null} Group ID, or null when neither is known.
+ */
+export function getEditorGroupId() {
+    return editorGroupId ?? getContextOrNull()?.groupId ?? null;
+}
+
+/**
  * Describes how the toggle should present the current state.
  *
  * @param {boolean} hidden Whether avatars are currently hidden.
@@ -60,13 +98,13 @@ export function getToggleState(hidden) {
 }
 
 /**
- * Flips the saved hidden-avatars flag for the open group and re-syncs the UI.
+ * Flips the saved hidden-avatars flag for the group the editor shows and
+ * re-syncs the UI.
  *
  * @returns {void}
  */
 export function toggleHideAvatars() {
-    const context = getContextOrNull();
-    const groupId = context?.groupId ?? null;
+    const groupId = getEditorGroupId();
     const settings = getSettings();
 
     if (!settings || !groupId) {
@@ -121,7 +159,7 @@ export function syncHideAvatarUI() {
         return;
     }
 
-    const groupId = getContextOrNull()?.groupId ?? null;
+    const groupId = getEditorGroupId();
     const settings = getSettings();
     const hidden = settings && groupId ? getHideAvatars(settings, groupId) : false;
     const { icon, title } = getToggleState(hidden);
@@ -131,22 +169,26 @@ export function syncHideAvatarUI() {
     }
 
     for (const pagination of doc.querySelectorAll(PAGINATION_SELECTOR) ?? []) {
-        if (!pagination.parentElement) {
+        const parent = pagination.parentElement;
+        if (!parent) {
             continue;
         }
 
-        let button = pagination.nextElementSibling;
-        if (button?.classList?.contains(BUTTON_CLASS)) {
-            // A button that already sits after the pagination may be a popout
-            // clone: its HTML was copied but its listeners were not. It can
-            // never work, so it is always replaced with a freshly bound one.
-            button.remove?.();
-            button = null;
+        // The button may already sit after the pagination (a live one from an
+        // earlier sync) or elsewhere in the parent (a popout clone whose HTML
+        // was copied without its listeners, or a leftover from a re-render).
+        // Anything found is always replaced with a freshly bound button, so a
+        // dead clone can never survive and two toggles can never coexist.
+        for (const existing of parent.querySelectorAll?.(`.${BUTTON_CLASS}`) ?? []) {
+            existing.remove?.();
         }
 
-        if (!button) {
-            button = createToggleButton(doc);
-            pagination.parentElement.insertBefore(button, pagination.nextElementSibling ?? null);
+        const button = createToggleButton(doc);
+        const sibling = pagination.nextElementSibling ?? null;
+        if (sibling && sibling.parentNode === parent) {
+            parent.insertBefore(button, sibling);
+        } else {
+            parent.appendChild(button);
         }
 
         button.textContent = icon;
@@ -203,6 +245,14 @@ function handleMutations(mutations) {
 export function initHideMemberAvatars() {
     syncHideAvatarUI();
 
+    const context = getContextOrNull();
+    const { eventSource, eventTypes } = context ?? {};
+    const groupSelected = eventTypes?.GROUP_SELECTED ?? 'groupSelected';
+
+    if (eventSource?.on) {
+        eventSource.on(groupSelected, handleGroupSelected);
+    }
+
     const doc = globalThis.document;
     if (typeof globalThis.MutationObserver === 'undefined' || !doc?.body) {
         console.warn(`[${MODULE_NAME}] Hide-avatars toggle is not watching for re-renders`);
@@ -223,6 +273,16 @@ export function initHideMemberAvatars() {
  * @returns {void}
  */
 export function disposeHideMemberAvatars() {
+    const context = getContextOrNull();
+    const { eventSource, eventTypes } = context ?? {};
+    const groupSelected = eventTypes?.GROUP_SELECTED ?? 'groupSelected';
+
+    if (eventSource?.removeListener) {
+        eventSource.removeListener(groupSelected, handleGroupSelected);
+    }
+
+    editorGroupId = null;
+
     observer?.disconnect();
     observer = null;
 
@@ -244,4 +304,14 @@ export function disposeHideMemberAvatars() {
     for (const container of doc.querySelectorAll(MEMBER_LIST_SELECTOR) ?? []) {
         container.classList?.remove(HIDDEN_CLASS);
     }
+}
+
+/**
+ * Test-only: clears the tracked editor group so module-level state does not
+ * leak between tests in the same process.
+ *
+ * @returns {void}
+ */
+export function __resetEditorGroupIdForTests() {
+    editorGroupId = null;
 }
