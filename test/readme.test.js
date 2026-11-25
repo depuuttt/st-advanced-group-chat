@@ -50,6 +50,5 @@ test('README describes the member row markup accurately', () => {
 
 test('README documents the Material Symbols icon source', () => {
     assert.match(readme, /Material Symbols/i);
-    assert.match(readme, /fonts\.google\.com|Google Fonts/i);
-    assert.match(readme, /internet connection/i);
+    assert.match(readme, /bundled|offline|no internet|without an internet connection/i);
 });

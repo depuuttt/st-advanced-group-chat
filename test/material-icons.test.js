@@ -4,13 +4,11 @@ import {
     MATERIAL_BY_ACTION,
     applyMaterialIcons,
     restoreFontAwesomeIcons,
-    injectMaterialSymbolsFont,
     initMaterialIcons,
     disposeMaterialIcons,
 } from '../src/material-icons.js';
 
 const MEMBER_SELECTOR = '.rm_group_members .right_menu_button';
-const FONT_LINK_HREF = 'https://fonts.googleapis.com/css2?family+Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block';
 
 function makeButton({ action = null, className = '', text = '' } = {}) {
     const classes = new Set(className.split(/\s+/).filter(Boolean));
@@ -155,16 +153,14 @@ function makeFakeElement(tag = 'div') {
     return el;
 }
 
-/** A fake document with a head that records appended children and member-list buttons. */
+/** A fake document whose querySelectorAll returns the given member-list buttons. */
 function makeFakeDocument({ buttons = [] } = {}) {
-    const head = makeFakeElement('head');
-    head.querySelector = (sel) => (sel.startsWith('#')
-        ? head._children.find((el) => el.getAttribute('id') === sel.slice(1)) ?? null
-        : null);
+    const appended = [];
     return {
-        head,
+        head: { _children: appended, querySelector: () => null, appendChild: (el) => appended.push(el) },
         createElement: (tag) => makeFakeElement(tag),
         querySelectorAll: (selector) => (selector === MEMBER_SELECTOR ? buttons : []),
+        _appended: appended,
     };
 }
 
@@ -181,40 +177,26 @@ function withDocument(doc, fn) {
     }
 }
 
-test('injectMaterialSymbolsFont appends the pinned stylesheet link once', () => {
-    const doc = makeFakeDocument();
-
-    injectMaterialSymbolsFont(doc);
-
-    assert.equal(doc.head._children.length, 1);
-    const link = doc.head._children[0];
-    assert.equal(link.getAttribute('id'), 'st-agc-material-symbols-css');
-    assert.equal(link.getAttribute('rel'), 'stylesheet');
-    assert.equal(link.getAttribute('href'), FONT_LINK_HREF);
-
-    injectMaterialSymbolsFont(doc);
-    assert.equal(doc.head._children.length, 1);
-});
-
-test('initMaterialIcons injects the font and converts member buttons', () => {
+test('initMaterialIcons converts member buttons without injecting any font link', () => {
     const button = makeButton({ action: 'disable', className: 'right_menu_button fa-solid fa-comment-slash' });
     const doc = makeFakeDocument({ buttons: [button] });
 
     withDocument(doc, () => initMaterialIcons());
 
-    assert.equal(doc.head._children.length, 1);
+    // The font is self-hosted via @font-face in style.css; init must not append
+    // any external stylesheet <link> to the document.
+    assert.equal(doc._appended.length, 0);
     assert.ok(button.classList.contains('st-agc-material-icon'));
     assert.equal(button.textContent, 'comments_disabled');
 });
 
-test('disposeMaterialIcons restores buttons and removes the font link', () => {
+test('disposeMaterialIcons restores buttons', () => {
     const button = makeButton({
         action: 'disable',
         className: 'right_menu_button st-agc-material-icon',
         text: 'comments_disabled',
     });
     const doc = makeFakeDocument({ buttons: [button] });
-    injectMaterialSymbolsFont(doc);
 
     withDocument(doc, () => disposeMaterialIcons());
 
@@ -222,7 +204,6 @@ test('disposeMaterialIcons restores buttons and removes the font link', () => {
     assert.ok(button.classList.contains('fa-solid'));
     assert.ok(button.classList.contains('fa-comment-slash'));
     assert.equal(button.textContent, '');
-    assert.equal(doc.head._children.length, 0);
 });
 
 test('disposeMaterialIcons warns instead of throwing without a document', () => {

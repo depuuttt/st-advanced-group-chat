@@ -21,7 +21,21 @@
     text-shadow: 0 0 4px var(--SmartThemeQuoteColor, #ffb347);
 }
 
-/* Material Symbols Rounded glyphs for group member row icons. */
+/* Material Symbols Rounded glyphs for group member row icons.
+ *
+ * The variable font is bundled with the extension (fonts/) and loaded via
+ * @font-face, so the icons render offline with no Google Fonts dependency.
+ * The url() is relative to this stylesheet, so it resolves wherever SillyTavern
+ * serves the extension's files.
+ */
+@font-face {
+    font-family: 'Material Symbols Rounded';
+    font-style: normal;
+    font-weight: 100 700;
+    font-display: swap;
+    src: url('./fonts/material-symbols-rounded.woff2') format('woff2');
+}
+
 .st-agc-material-icon {
     font-family: 'Material Symbols Rounded';
     font-weight: normal;

@@ -12,8 +12,6 @@
 const MODULE_NAME = 'st_advanced_group_chat';
 const MATERIAL_CLASS = 'st-agc-material-icon';
 const MEMBER_BUTTON_SELECTOR = '.rm_group_members .right_menu_button';
-const FONT_LINK_HREF = 'https://fonts.googleapis.com/css2?family+Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block';
-const FONT_LINK_ID = 'st-agc-material-symbols-css';
 
 /** data-action → Material Symbols Rounded name. */
 export const MATERIAL_BY_ACTION = {
@@ -98,47 +96,22 @@ export function restoreFontAwesomeIcons(doc) {
 }
 
 /**
- * Inject the Google Fonts Material Symbols Rounded stylesheet once.
+ * Feature init: convert any already-rendered member buttons to Material Symbols.
  *
- * Each DOM access is guarded so a missing document degrades to a warning rather
- * than throwing — the extension must never take the host down.
+ * The font is self-hosted (bundled `fonts/material-symbols-rounded.woff2`, loaded
+ * via @font-face in style.css), so there is no external stylesheet to inject and
+ * no network dependency for the icons to render.
  *
- * @param {Document} doc The document to inject into.
- * @returns {void}
- */
-export function injectMaterialSymbolsFont(doc) {
-    if (!doc?.head?.querySelector || typeof doc.createElement !== 'function') {
-        warn('injectMaterialSymbolsFont called without a usable document; skipping');
-        return;
-    }
-
-    if (doc.head.querySelector(`#${FONT_LINK_ID}`)) {
-        return;
-    }
-
-    const link = doc.createElement('link');
-    link.setAttribute('id', FONT_LINK_ID);
-    link.setAttribute('rel', 'stylesheet');
-    link.setAttribute('href', FONT_LINK_HREF);
-    doc.head.appendChild(link);
-}
-
-/**
- * Feature init: load the font, then convert any already-rendered member buttons.
  * @returns {void}
  */
 export function initMaterialIcons() {
-    const doc = globalThis.document;
-    injectMaterialSymbolsFont(doc);
-    applyMaterialIcons(doc);
+    applyMaterialIcons(globalThis.document);
 }
 
 /**
- * Feature dispose: restore Font Awesome icons and remove the injected stylesheet.
+ * Feature dispose: restore Font Awesome icons on the member-row buttons.
  * @returns {void}
  */
 export function disposeMaterialIcons() {
-    const doc = globalThis.document;
-    restoreFontAwesomeIcons(doc);
-    doc?.head?.querySelector?.(`#${FONT_LINK_ID}`)?.remove?.();
+    restoreFontAwesomeIcons(globalThis.document);
 }

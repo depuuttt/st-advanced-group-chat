@@ -42,13 +42,13 @@ Enter the model identifier used by your provider, not necessarily the display na
 - The selected model must be available through your current API connection. Choosing a model from a different model family may require different settings; SillyTavern does not automatically reconfigure those settings for this extension.
 - A member without a saved choice uses the model currently selected in **API Connections**.
 - Choices are saved separately for each group and member and remain saved when you reload SillyTavern.
-- The member row icons are drawn with Google's Material Symbols, loaded from `fonts.googleapis.com` when the group panel opens, so the icons need an internet connection; without one the buttons show the icon names as text until the connection returns.
+- The member row icons are drawn with Google's Material Symbols Rounded, bundled with the extension, so they render offline with no internet connection required.
 
 ## Troubleshooting
 
 - **The model choice has no effect:** Check that the group uses Chat Completion, that the model name is correct for your provider, and that the model is available through the current connection.
 - **The model icon is missing:** Check that the extension is enabled, then reload SillyTavern and reopen the group-management panel.
-- **The member row icons show words instead of symbols:** The icons load from Google Fonts; check the internet connection and reload.
+- **The member row icons show words instead of symbols:** The bundled font may not have loaded. Reload SillyTavern; if it persists, confirm the extension's `fonts/material-symbols-rounded.woff2` file is present in the installed copy.
 - **The extension does not load:** Open the browser console (usually F12) and look for messages beginning with `[st_advanced_group_chat]`. After a SillyTavern update, an extension update may be needed if its group controls or events have changed.
 
 ## Compatibility
