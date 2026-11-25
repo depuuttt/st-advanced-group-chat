@@ -47,3 +47,9 @@ test('README describes the member row markup accurately', () => {
     assert.match(readme, /data-chid/);
     assert.doesNotMatch(readme, /carry the member's avatar as `data-id`/i);
 });
+
+test('README documents the Material Symbols icon source', () => {
+    assert.match(readme, /Material Symbols/i);
+    assert.match(readme, /fonts\.google\.com|Google Fonts/i);
+    assert.match(readme, /internet connection/i);
+});
