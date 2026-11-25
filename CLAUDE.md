@@ -38,6 +38,8 @@ Entry point is [index.js](index.js) (the `js` referenced by [manifest.json](mani
 
 If an element is visible but real clicks do nothing while unit tests and programmatic `.click()` pass, suspect the refresh-loop + node-replacement pattern documented in [docs/debugging-playbook.md](docs/debugging-playbook.md) — don't guess at fixes. Two repo rules come from it: guard every DOM write in a refresh/sync path (`if (el.textContent !== next)` — same-value writes still mutate), and reuse listener-bound elements instead of re-creating them (track live instances in a WeakSet, which HTML clones don't copy). Every refresh/sync pass gets a test asserting a second pass performs zero DOM writes. The playbook also has the headless-browser recipe for verifying against the real SillyTavern install.
 
+**Live verification is approval-gated:** never launch the headless browser / CDP session (or otherwise drive the real SillyTavern install and its `settings.json`) on your own initiative. Ask the user for explicit go-ahead first, every time, and state what you intend to run and what state it will touch. The user decides when live verification is worth it.
+
 ## Design docs and SillyTavern reference
 
 `docs/superpowers/` holds specs and implementation plans (per-member models, deferred minors). No SillyTavern reference docs are vendored into this repo: consult the SillyTavern source or its docs on your machine. If a gitignored `LOCAL.md` exists at the repository root, read it first — it points at the local SillyTavern checkout (see [CONTRIBUTING.md](CONTRIBUTING.md) to create your own).

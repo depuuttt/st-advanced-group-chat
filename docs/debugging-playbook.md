@@ -82,6 +82,18 @@ Chrome DevTools Protocol, using plain Node (built-in `fetch`/`WebSocket`):
    (back up `data/default-user/settings.json` first, per `LOCAL.md`), and kill
    only the Edge processes whose command line contains your `--user-data-dir`.
 
+Two practical notes for driving the real install:
+
+- **Deploying the extension under test.** The installed extension copy at
+  `public/scripts/extensions/third-party/st-advanced-group-chat` (inside the
+  SillyTavern checkout, not this repo) is itself a git checkout of this repo —
+  push the branch, then `git reset --hard origin/<branch>` in that directory to
+  deploy it. Open a fresh tab afterwards (`/json/new` on the debug port); a
+  `Page.reload` kills the CDP session.
+- Driver scripts (CDP client, churn measurement, hit-test, real-click) from the
+  2026-11-25 session live in `%TEMP%\st-agc-debug\` — transient, treat them as
+  scratch, not fixtures.
+
 An earlier version of these scripts was used for the 2026-11-25 diagnosis; the
 recipe above is the distilled form. Related background: the case study is
 `docs/superpowers/specs/2026-11-25-hide-member-avatars-design.md` plus commit
