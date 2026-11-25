@@ -1,14 +1,19 @@
 /**
- * One toggle under the member-list pagination hides every avatar in that
- * group's member lists (the group editor and its popout share the markup).
+ * One toggle in a toolbar strip above each member list hides every avatar in
+ * that group's member lists (the group editor and its popout share the markup).
+ *
+ * The toolbar is a plain container div inserted as a **sibling above** each
+ * `.rm_group_members` — never a child, because SillyTavern wipes the list's
+ * children on every render — styled by `style.css` to read as the list card's
+ * header. Future features can append their buttons into it.
  *
  * Hiding is pure CSS: a class on each `.rm_group_members` container collapses
  * the `.avatar` blocks, so SillyTavern's row rebuilds cannot undo it. The
- * toggle button and the class are (re)applied by a MutationObserver that
- * follows the same coalescing pattern as `member-model-button.js`, because
- * SillyTavern re-renders the list without emitting an event — and because
- * the popout *clones* the drawer HTML, which copies our button without its
- * listeners.
+ * toolbar, the toggle button, and the class are (re)applied by a
+ * MutationObserver that follows the same coalescing pattern as
+ * `member-model-button.js`, because SillyTavern re-renders the list without
+ * emitting an event — and because the popout *clones* the drawer HTML, which
+ * copies our nodes without their listeners.
  */
 
 import { getSettings, getHideAvatars, setHideAvatars } from './model-overrides.js';
@@ -17,8 +22,8 @@ import { translateText, handleButtonKeydown, mutationsTouchMemberList } from './
 const MODULE_NAME = 'st_advanced_group_chat';
 
 const MEMBER_LIST_SELECTOR = '.rm_group_members';
-const PAGINATION_SELECTOR = '.rm_group_members_pagination';
 const BUTTON_CLASS = 'st-agc-hide-avatars-button';
+const TOOLBAR_CLASS = 'st-agc-member-toolbar';
 const MATERIAL_CLASS = 'st-agc-material-icon';
 const HIDDEN_CLASS = 'st-agc-hide-avatars';
 
@@ -34,6 +39,13 @@ let observer = null;
  * @type {WeakSet<Element>}
  */
 const liveButtons = new WeakSet();
+
+/**
+ * Toolbars this module created (same clone rule as `liveButtons`).
+ *
+ * @type {WeakSet<Element>}
+ */
+const liveToolbars = new WeakSet();
 
 /**
  * The group whose member list the editor last rendered. SillyTavern's
@@ -126,6 +138,19 @@ export function toggleHideAvatars() {
 }
 
 /**
+ * Creates a fresh toolbar container (no listeners — future features append
+ * their own buttons into it).
+ *
+ * @param {Document} doc Owner document.
+ * @returns {Element} The new toolbar.
+ */
+function createToolbar(doc) {
+    const toolbar = doc.createElement('div');
+    toolbar.className = TOOLBAR_CLASS;
+    return toolbar;
+}
+
+/**
  * Creates a fresh toggle button bound to live listeners.
  *
  * @param {Document} doc Owner document.
@@ -178,21 +203,43 @@ export function syncHideAvatarUI() {
         container.classList?.toggle(HIDDEN_CLASS, hidden);
     }
 
-    for (const pagination of doc.querySelectorAll(PAGINATION_SELECTOR) ?? []) {
-        const parent = pagination.parentElement;
+    for (const container of doc.querySelectorAll(MEMBER_LIST_SELECTOR) ?? []) {
+        const parent = container.parentElement;
         if (!parent) {
             continue;
         }
 
-        // A button created by this module is reused as-is: its listeners stay
-        // attached and the node stays stable across refresh passes. Replacing
-        // it on every pass churns the DOM at observer rate, and a real click
-        // (mousedown … mouseup) then straddles a replacement, so the click
-        // event never fires on a live listener. HTML clones — the popout copies
-        // the drawer markup — and leftovers are not in `liveButtons`, so only
-        // those are removed and replaced with a freshly bound button.
+        // A toolbar created by this module is reused as-is, same clone rules
+        // as the button: HTML clones (the popout copies the drawer markup)
+        // and leftovers are not in `liveToolbars`, so only those are removed
+        // and replaced with a fresh container.
+        let toolbar = null;
+        for (const existing of parent.querySelectorAll?.(`.${TOOLBAR_CLASS}`) ?? []) {
+            if (!toolbar && liveToolbars.has(existing)) {
+                toolbar = existing;
+            } else {
+                existing.remove?.();
+            }
+        }
+
+        if (!toolbar) {
+            toolbar = createToolbar(doc);
+            liveToolbars.add(toolbar);
+        }
+
+        // Seat the toolbar immediately before the list only when it is not
+        // already there: inserting it where it already sits would touch the
+        // DOM on every pass for no change.
+        if (!(toolbar.parentNode === parent && container.previousElementSibling === toolbar)) {
+            parent.insertBefore(toolbar, container);
+        }
+
+        // The button lives inside the toolbar, same live/dead rules scoped to
+        // it. Replacing a live button on every pass churns the DOM at observer
+        // rate, and a real click (mousedown … mouseup) then straddles a
+        // replacement, so the click event never fires on a live listener.
         let button = null;
-        for (const existing of parent.querySelectorAll?.(`.${BUTTON_CLASS}`) ?? []) {
+        for (const existing of toolbar.querySelectorAll?.(`.${BUTTON_CLASS}`) ?? []) {
             if (!button && liveButtons.has(existing)) {
                 button = existing;
             } else {
@@ -205,17 +252,10 @@ export function syncHideAvatarUI() {
             liveButtons.add(button);
         }
 
-        // Move the button into place only when it is not already right after
-        // the pagination: inserting it where it already sits would touch the
-        // DOM on every pass for no change.
-        const sibling = pagination.nextElementSibling ?? null;
-        const inPlace = button.parentNode === parent && sibling === button;
-        if (!inPlace) {
-            if (sibling && sibling.parentNode === parent) {
-                parent.insertBefore(button, sibling);
-            } else {
-                parent.appendChild(button);
-            }
+        // Move the button into place only when it is not already the toolbar's
+        // last child.
+        if (!(button.parentNode === toolbar && !button.nextElementSibling)) {
+            toolbar.appendChild(button);
         }
 
         // Guarded writes: same-value textContent/title assignments still mutate
@@ -332,6 +372,10 @@ export function disposeHideMemberAvatars() {
 
     for (const button of doc.querySelectorAll(`.${BUTTON_CLASS}`) ?? []) {
         button.remove?.();
+    }
+
+    for (const toolbar of doc.querySelectorAll(`.${TOOLBAR_CLASS}`) ?? []) {
+        toolbar.remove?.();
     }
 
     for (const container of doc.querySelectorAll(MEMBER_LIST_SELECTOR) ?? []) {
