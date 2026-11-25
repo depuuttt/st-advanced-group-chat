@@ -25,7 +25,16 @@ function makeElement(tag = 'div') {
     const attrs = {};
     const children = [];
     const relink = () => {
-        children.forEach((c, i) => { c.nextElementSibling = children[i + 1] ?? null; });
+        children.forEach((c, i) => {
+            c.nextElementSibling = children[i + 1] ?? null;
+            c.previousElementSibling = children[i - 1] ?? null;
+        });
+    };
+    const detach = (child) => {
+        if (child.parentNode?._children) {
+            const i = child.parentNode._children.indexOf(child);
+            if (i !== -1) child.parentNode._children.splice(i, 1);
+        }
     };
     const el = {
         tagName: tag,
@@ -37,6 +46,7 @@ function makeElement(tag = 'div') {
         parentNode: null,
         parentElement: null,
         nextElementSibling: null,
+        previousElementSibling: null,
         get className() { return [...classes].join(' '); },
         set className(v) {
             classes.clear();
@@ -55,9 +65,10 @@ function makeElement(tag = 'div') {
         setAttribute: (k, v) => { attrs[k] = String(v); },
         getAttribute: (k) => (k in attrs ? attrs[k] : null),
         addEventListener: (type, fn) => el._listeners.push({ type, fn }),
-        prepend: (child) => { children.unshift(child); child.parentNode = el; child.parentElement = el; relink(); },
-        appendChild: (child) => { children.push(child); child.parentNode = el; child.parentElement = el; relink(); return child; },
+        prepend: (child) => { detach(child); children.unshift(child); child.parentNode = el; child.parentElement = el; relink(); },
+        appendChild: (child) => { detach(child); children.push(child); child.parentNode = el; child.parentElement = el; relink(); return child; },
         insertBefore: (child, ref) => {
+            detach(child);
             const i = ref ? children.indexOf(ref) : children.length;
             children.splice(i === -1 ? children.length : i, 0, child);
             child.parentNode = el;
@@ -67,11 +78,15 @@ function makeElement(tag = 'div') {
         },
         remove: () => {
             el._removed = true;
+            detach(el);
             if (el.parentNode?._children) {
-                const i = el.parentNode._children.indexOf(el);
-                if (i !== -1) el.parentNode._children.splice(i, 1);
+                el.parentNode._children.forEach((c, i, arr) => {
+                    c.nextElementSibling = arr[i + 1] ?? null;
+                    c.previousElementSibling = arr[i - 1] ?? null;
+                });
             }
-            if (el.nextElementSibling) el.nextElementSibling = null;
+            el.nextElementSibling = null;
+            el.previousElementSibling = null;
         },
         querySelector: (sel) => {
             const cls = sel.startsWith('.') ? sel.slice(1) : null;
@@ -113,6 +128,9 @@ function installDocument({ containers = [], paginations = [], rafImmediate = tru
             if (selector === '.rm_group_members_pagination') return paginations;
             if (selector === '.st-agc-hide-avatars-button') {
                 return created.filter((c) => c.classList.contains('st-agc-hide-avatars-button'));
+            }
+            if (selector === '.st-agc-member-toolbar') {
+                return created.filter((c) => c.classList.contains('st-agc-member-toolbar'));
             }
             return [];
         },
@@ -294,23 +312,29 @@ test('handleGroupSelected with no editor group falls back to the chat group', ()
     }
 });
 
-test('syncHideAvatarUI inserts one button after every pagination container', () => {
-    const editorPagination = makeElement();
-    const popoutPagination = makeElement();
+test('syncHideAvatarUI inserts a toolbar with the button before every member list', () => {
+    const editorContainer = makeElement();
+    const popoutContainer = makeElement();
+    editorContainer.classList.add('rm_group_members');
+    popoutContainer.classList.add('rm_group_members');
     const editorParent = makeElement();
     const popoutParent = makeElement();
-    editorPagination.parentElement = editorParent;
-    popoutPagination.parentElement = popoutParent;
-    editorParent.appendChild(editorPagination);
-    popoutParent.appendChild(popoutPagination);
+    editorParent.appendChild(editorContainer);
+    popoutParent.appendChild(popoutContainer);
 
-    const { restore } = installDocument({ paginations: [editorPagination, popoutPagination] });
+    const { restore } = installDocument({ containers: [editorContainer, popoutContainer] });
     try {
         syncHideAvatarUI();
 
-        for (const parent of [editorParent, popoutParent]) {
-            const button = parent._children.find((c) => c.classList.contains(BUTTON_CLASS));
-            assert.ok(button, 'a toggle button is inserted');
+        for (const [parent, container] of [[editorParent, editorContainer], [popoutParent, popoutContainer]]) {
+            const toolbars = parent._children.filter((c) => c.classList.contains('st-agc-member-toolbar'));
+            assert.equal(toolbars.length, 1, 'exactly one toolbar is inserted');
+            const toolbar = toolbars[0];
+            assert.equal(toolbar.nextElementSibling, container, 'the toolbar sits immediately before the list');
+
+            const buttons = toolbar._children.filter((c) => c.classList.contains(BUTTON_CLASS));
+            assert.equal(buttons.length, 1, 'the toolbar holds one toggle button');
+            const button = buttons[0];
             assert.equal(button.getAttribute('role'), 'button');
             assert.equal(button.getAttribute('tabindex'), '0');
             assert.ok(button.classList.contains('st-agc-material-icon'));
@@ -322,54 +346,66 @@ test('syncHideAvatarUI inserts one button after every pagination container', () 
 });
 
 test('syncHideAvatarUI does not duplicate the button on a second sync', () => {
-    const pagination = makeElement();
+    const container = makeElement();
+    container.classList.add('rm_group_members');
     const parent = makeElement();
-    pagination.parentElement = parent;
-    parent.appendChild(pagination);
+    parent.appendChild(container);
 
-    const { restore } = installDocument({ paginations: [pagination] });
+    const { restore } = installDocument({ containers: [container] });
     try {
         syncHideAvatarUI();
+        const toolbar = parent._children.find((c) => c.classList.contains('st-agc-member-toolbar'));
+        const first = toolbar._children.find((c) => c.classList.contains(BUTTON_CLASS));
         syncHideAvatarUI();
 
-        const buttons = parent._children.filter((c) => c.classList.contains(BUTTON_CLASS));
+        const buttons = toolbar._children.filter((c) => c.classList.contains(BUTTON_CLASS));
         assert.equal(buttons.length, 1, 'the live button is reused, not duplicated');
+        assert.equal(buttons[0], first, 'the same button node survives, so its listeners stay attached');
+        assert.equal(first._removed, false, 'the live button was not removed and re-created');
     } finally {
         restore();
     }
 });
 
-test('syncHideAvatarUI replaces a stale button that is not the immediate sibling', () => {
-    const pagination = makeElement();
+test('syncHideAvatarUI replaces a cloned button that carries the class but no live listener', () => {
+    const container = makeElement();
+    container.classList.add('rm_group_members');
     const parent = makeElement();
-    pagination.parentElement = parent;
-    parent.appendChild(pagination);
+    parent.appendChild(container);
 
-    // A leftover button elsewhere in the parent (e.g. after a re-render moved
-    // nodes around) must not survive as a second, dead toggle.
-    const stale = makeElement();
-    stale.className = `${BUTTON_CLASS} st-agc-material-icon`;
-    parent.appendChild(stale);
+    // The popout copies the drawer markup wholesale: a cloned toolbar carrying
+    // a cloned button — classes intact, listeners not — must be replaced.
+    const staleToolbar = makeElement();
+    staleToolbar.className = 'st-agc-member-toolbar';
+    parent.appendChild(staleToolbar);
+    const clone = makeElement();
+    clone.className = `${BUTTON_CLASS} st-agc-material-icon`;
+    staleToolbar.appendChild(clone);
 
-    const { restore } = installDocument({ paginations: [pagination] });
+    const { restore } = installDocument({ containers: [container] });
     try {
         syncHideAvatarUI();
 
-        const buttons = parent._children.filter((c) => c.classList.contains(BUTTON_CLASS));
-        assert.equal(buttons.length, 1, 'the stale button was replaced');
-        assert.ok(stale._removed, 'the stale button was removed');
-        assert.notEqual(buttons[0], stale);
+        const toolbars = parent._children.filter((c) => c.classList.contains('st-agc-member-toolbar'));
+        assert.equal(toolbars.length, 1, 'one toolbar after cleanup');
+        assert.notEqual(toolbars[0], staleToolbar);
+        assert.ok(staleToolbar._removed, 'the stale toolbar clone was removed');
+
+        const buttons = toolbars[0]._children.filter((c) => c.classList.contains(BUTTON_CLASS));
+        assert.equal(buttons.length, 1, 'the dead clone was replaced, not kept');
+        assert.notEqual(buttons[0], clone);
     } finally {
         restore();
     }
 });
 
-test('syncHideAvatarUI skips a pagination with no parent', () => {
+test('syncHideAvatarUI skips a member list with no parent', () => {
     const orphan = makeElement();
+    orphan.classList.add('rm_group_members');
     orphan.parentElement = null;
     orphan.parentNode = null;
 
-    const { restore } = installDocument({ paginations: [orphan] });
+    const { restore } = installDocument({ containers: [orphan] });
     try {
         syncHideAvatarUI();
         // No throw; nothing to assert beyond survival.
@@ -379,24 +415,75 @@ test('syncHideAvatarUI skips a pagination with no parent', () => {
     }
 });
 
-test('syncHideAvatarUI replaces a cloned button that carries the class but no live listener', () => {
-    const pagination = makeElement();
+test('syncHideAvatarUI reseats a toolbar that is no longer before the list', () => {
+    const container = makeElement();
+    container.classList.add('rm_group_members');
     const parent = makeElement();
-    pagination.parentElement = parent;
-    parent.appendChild(pagination);
+    parent.appendChild(container);
 
-    const clone = makeElement();
-    clone.className = `${BUTTON_CLASS} st-agc-material-icon`;
-    parent.appendChild(clone);
+    const { restore } = installDocument({ containers: [container] });
+    try {
+        syncHideAvatarUI();
+        const toolbar = parent._children.find((c) => c.classList.contains('st-agc-member-toolbar'));
 
-    const { restore } = installDocument({ paginations: [pagination] });
+        // SillyTavern re-inserted something between toolbar and list.
+        const intruder = makeElement();
+        parent.appendChild(intruder);
+
+        syncHideAvatarUI();
+
+        assert.equal(container.previousElementSibling, toolbar, 'the toolbar is back before the list');
+        assert.equal(toolbar.parentNode, parent, 'the same live toolbar node was reseated, not recreated');
+        const toolbars = parent._children.filter((c) => c.classList.contains('st-agc-member-toolbar'));
+        assert.equal(toolbars.length, 1, 'still exactly one toolbar');
+    } finally {
+        restore();
+    }
+});
+
+test('a second sync pass performs zero DOM writes', () => {
+    const container = makeElement();
+    container.classList.add('rm_group_members');
+    const parent = makeElement();
+    parent.appendChild(container);
+
+    const { restore } = installDocument({ containers: [container] });
     try {
         syncHideAvatarUI();
 
-        const buttons = parent._children.filter((c) => c.classList.contains(BUTTON_CLASS));
-        assert.equal(buttons.length, 1, 'the dead clone was replaced, not kept');
-        assert.notEqual(buttons[0], clone);
-        assert.ok(clone._removed, 'the stale clone was removed');
+        const toolbar = parent._children.find((c) => c.classList.contains('st-agc-member-toolbar'));
+        const button = toolbar._children.find((c) => c.classList.contains(BUTTON_CLASS));
+
+        // Count every DOM-mutating path the sync pass can take.
+        let writes = 0;
+        const wrapWrites = (obj, method) => {
+            const original = obj[method];
+            obj[method] = (...args) => {
+                writes += 1;
+                return original(...args);
+            };
+        };
+        const wrapText = (el) => {
+            let text = el.textContent;
+            let title = el.title;
+            Object.defineProperty(el, 'textContent', {
+                get: () => text,
+                set: (value) => { writes += 1; text = String(value); },
+            });
+            Object.defineProperty(el, 'title', {
+                get: () => title,
+                set: (value) => { writes += 1; title = String(value); },
+            });
+        };
+        wrapWrites(parent, 'insertBefore');
+        wrapWrites(parent, 'appendChild');
+        wrapWrites(toolbar, 'appendChild');
+        wrapWrites(toolbar, 'insertBefore');
+        wrapText(button);
+
+        syncHideAvatarUI();
+
+        assert.equal(writes, 0, 'a second pass on unchanged DOM wrote nothing');
     } finally {
         restore();
     }
@@ -461,19 +548,15 @@ test('observer callback re-syncs after a member-list mutation', () => {
     }
 });
 
-test('disposeHideMemberAvatars removes buttons, container class, and observer', () => {
+test('disposeHideMemberAvatars removes buttons, toolbar, container class, and observer', () => {
     const container = makeElement();
     container.classList.add('rm_group_members');
     container.classList.add(HIDDEN_CLASS);
-
-    const pagination = makeElement();
     const parent = makeElement();
-    pagination.parentElement = parent;
-    parent.appendChild(pagination);
+    parent.appendChild(container);
 
     const { restore, cancelled, getObserverCallback } = installDocument({
         containers: [container],
-        paginations: [pagination],
         rafImmediate: false,
     });
     try {
@@ -483,11 +566,17 @@ test('disposeHideMemberAvatars removes buttons, container class, and observer', 
         getObserverCallback()([{ target: memberList, addedNodes: [] }]);
         assert.equal(cancelled.length, 0, 'nothing cancelled before dispose');
 
+        syncHideAvatarUI();
+        const toolbar = parent._children.find((c) => c.classList.contains('st-agc-member-toolbar'));
+        assert.ok(toolbar, 'a toolbar existed before dispose');
+
         disposeHideMemberAvatars();
 
-        const buttons = parent._children.filter((c) => c.classList.contains(BUTTON_CLASS));
+        const buttons = toolbar._children.filter((c) => c.classList.contains(BUTTON_CLASS));
         assert.equal(buttons.length, 0, 'buttons removed');
         assert.ok(buttons.every((b) => b._removed));
+        assert.ok(toolbar._removed, 'the toolbar was removed');
+        assert.equal(parent._children.filter((c) => c.classList.contains('st-agc-member-toolbar')).length, 0, 'no toolbar left in the parent');
         assert.equal(container.classList.contains(HIDDEN_CLASS), false, 'container class removed');
         assert.ok(cancelled.includes(1), 'the queued refresh handle 1 was cancelled');
     } finally {

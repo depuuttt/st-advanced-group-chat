@@ -221,23 +221,20 @@ function makeFakeElement(tag = 'div') {
 test('APP_READY registers the hide-member-avatars toggle in the member list', async () => {
     const { fake, restore } = await loadIndex();
 
-    // A container for the member list and a pagination element with a parent,
-    // so the toggle can be inserted after the pagination.
+    // A container for the member list inside a parent, so the toolbar (with the
+    // toggle inside it) can be inserted before the list.
     const container = makeFakeElement();
     container.classList.add('rm_group_members');
-    const pagination = makeFakeElement();
     const parent = makeFakeElement();
-    pagination.parentElement = parent;
-    parent.appendChild(pagination);
     parent.appendChild(container);
+    container.parentElement = parent;
 
     const doc = {
         createElement: (tag) => makeFakeElement(tag),
         querySelectorAll: (selector) => {
             if (selector === '.rm_group_members') return [container];
-            if (selector === '.rm_group_members_pagination') return [pagination];
             if (selector === '.st-agc-hide-avatars-button') {
-                return parent._children.filter((c) => c.classList.contains('st-agc-hide-avatars-button'));
+                return parent._children.flatMap((c) => c._children ?? []).filter((c) => c.classList.contains('st-agc-hide-avatars-button'));
             }
             return [];
         },
@@ -248,8 +245,11 @@ test('APP_READY registers the hide-member-avatars toggle in the member list', as
     try {
         fake.emit('app_ready');
 
-        const button = parent._children.find((c) => c.classList.contains('st-agc-hide-avatars-button'));
-        assert.ok(button, 'the toggle button was added after the pagination');
+        const toolbar = parent._children.find((c) => c.classList.contains('st-agc-member-toolbar'));
+        assert.ok(toolbar, 'the toolbar was added above the member list');
+        assert.equal(parent._children.indexOf(toolbar) + 1, parent._children.indexOf(container), 'toolbar precedes the list');
+        const button = toolbar._children.find((c) => c.classList.contains('st-agc-hide-avatars-button'));
+        assert.ok(button, 'the toggle button was added inside the toolbar');
         assert.equal(button.textContent, 'visibility', 'default state shows the hide icon');
         assert.equal(container.classList.contains('st-agc-hide-avatars'), false, 'avatars shown by default');
     } finally {

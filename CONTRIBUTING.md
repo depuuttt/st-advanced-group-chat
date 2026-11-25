@@ -48,6 +48,7 @@ SillyTavern loads third-party extensions from `<SillyTavern>/data/<user>/extensi
 ## Code conventions
 
 - New group-chat features land as a new `src/` module plus a `registerFeature` call in `index.js` — not by editing existing modules. See `CLAUDE.md` for the architecture.
+- In observer-driven refresh/sync passes, guard every DOM write (write only when the value changed) and reuse listener-bound elements instead of re-creating them — see `docs/debugging-playbook.md` for why, and the "zero DOM writes on a second pass" test each such pass needs.
 - Every entry into SillyTavern APIs (`getContext`, `Popup`, event source, `document`) reads them lazily and degrades to a `console.warn` prefixed `[st_advanced_group_chat]` — the extension must never take the host app down.
 - `CLAUDE.md` and `AGENTS.md` have identical bodies (only the header differs). Any change to one must be made to the other in the same commit; `test/sync.test.js` fails when they drift.
 - If you change documented user-facing behavior, update `README.md` in the same commit or `test/readme.test.js` fails.

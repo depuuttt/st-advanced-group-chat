@@ -56,10 +56,43 @@
     display: none;
 }
 
+/* The toolbar strip above each member list: a plain container div (inserted
+   by src/hide-member-avatars.js as a sibling, never a child of the list) that
+   reads as the list card's header. Mirrors the card look from SillyTavern's
+   own `#rm_group_members` rule (background, border, 10px radius) and hosts
+   the toggle right-aligned; future features can append buttons into it. */
+.st-agc-member-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    min-height: 28px;
+    padding: 0 8px;
+    margin-top: 0.25rem;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+    background-color: var(--black30a);
+}
+
+/* While a toolbar sits directly above it, the list's top corners square off
+   and the gap closes, so the pair reads as one card. Without a toolbar (e.g.
+   after dispose) nothing matches and the list looks exactly as SillyTavern
+   ships it. The `#rm_group_members` variant is required in the drawer, where
+   SillyTavern's own card rule is id-qualified and would otherwise out-specify
+   a class-only rule (its 0.25rem top margin and 10px radius would win). The
+   -5px margin-top cancels the 5px `gap` of SillyTavern's `.flex-container`
+   parent (st-tailwind.css), which sits between the pair whatever their
+   margins say. */
+.st-agc-member-toolbar + .rm_group_members,
+.st-agc-member-toolbar + #rm_group_members {
+    margin-top: -5px;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
 .st-agc-hide-avatars-button {
     cursor: pointer;
-    margin: 4px 0;
-    width: fit-content;
 }
 
 .st-agc-hide-avatars-button:focus-visible {

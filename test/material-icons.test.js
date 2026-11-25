@@ -116,6 +116,28 @@ test('applyMaterialIcons is idempotent', () => {
     assert.equal(button.className().split(/\s+/).filter((c) => c === 'st-agc-material-icon').length, 1);
 });
 
+test('applyMaterialIcons does not rewrite textContent of already-converted buttons', () => {
+    // Setting textContent — even to the same value — replaces the text node and
+    // emits a childList mutation inside `.rm_group_members`. The MutationObserver
+    // treats that as a member-list render and schedules another refresh, so an
+    // unconditional write here feeds an endless refresh loop. Once a button is
+    // already showing the right glyph, a refresh pass must not write again.
+    const button = makeButton({ action: 'disable', className: 'right_menu_button fa-solid fa-lg fa-comment-slash' });
+    let writes = 0;
+    Object.defineProperty(button, 'textContent', {
+        get: () => button.text,
+        set: (value) => { writes += 1; button.text = String(value); },
+    });
+
+    const doc = makeDoc([button]);
+    applyMaterialIcons(doc);
+    const writesAfterFirst = writes;
+    assert.equal(writesAfterFirst, 1, 'the first conversion writes once');
+    applyMaterialIcons(doc);
+
+    assert.equal(writes, writesAfterFirst, 'a second pass on unchanged buttons writes nothing');
+});
+
 test('restoreFontAwesomeIcons reverses a converted button and leaves others untouched', () => {
     const converted = makeButton({ action: 'disable', className: 'right_menu_button st-agc-material-icon', text: 'comments_disabled' });
     const untouched = makeButton({ action: 'disable', className: 'right_menu_button fa-solid fa-comment-slash' });

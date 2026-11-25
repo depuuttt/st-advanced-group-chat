@@ -70,7 +70,13 @@ export function applyMaterialIcons(doc) {
         const faClasses = classNamesOf(button).filter(isFontAwesomeClass);
         if (faClasses.length) button.classList.remove(...faClasses);
         button.classList.add(MATERIAL_CLASS);
-        button.textContent = material;
+        // Only write when the glyph changed: a textContent assignment replaces
+        // the text node even when the value is identical, and that childList
+        // mutation inside `.rm_group_members` re-triggers the member-list
+        // observers, which re-run this pass — an endless refresh loop.
+        if (button.textContent !== material) {
+            button.textContent = material;
+        }
     }
 }
 
