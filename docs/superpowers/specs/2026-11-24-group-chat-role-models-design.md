@@ -2,6 +2,8 @@
 
 Date: 2026-11-24
 
+> **Status: Implemented** and verified; the implementation plan has been removed.
+
 ## Intent
 
 Build a SillyTavern UI extension for group-chat users who want different group members to use different language models while keeping the active SillyTavern connection and its shared settings.

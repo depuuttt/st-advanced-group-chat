@@ -2,6 +2,8 @@
 
 Date: 2026-11-24
 
+> **Status: Implemented** and verified; the implementation plan has been removed.
+
 ## Intent
 
 Close out the seven Minor findings from the code review of the group-chat
