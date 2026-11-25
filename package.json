@@ -5,6 +5,7 @@
     "description": "SillyTavern UI extension: per-member models for group chats.",
     "type": "module",
     "scripts": {
-        "test": "node --test"
+        "test": "node --test",
+        "check:instructions": "node scripts/check-instructions-sync.js"
     }
 }
