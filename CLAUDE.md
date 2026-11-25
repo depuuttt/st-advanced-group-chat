@@ -34,6 +34,10 @@ Entry point is [index.js](index.js) (the `js` referenced by [manifest.json](mani
 - DOM-dependent code is tested by injecting fake `document`/`MutationObserver` globals.
 - `test/readme.test.js` asserts README content: if you change documented behavior or the acceptance checklist, update [README.md](README.md) in the same commit or this suite fails.
 
+## Debugging UI bugs the fakes cannot catch
+
+If an element is visible but real clicks do nothing while unit tests and programmatic `.click()` pass, suspect the refresh-loop + node-replacement pattern documented in [docs/debugging-playbook.md](docs/debugging-playbook.md) — don't guess at fixes. Two repo rules come from it: guard every DOM write in a refresh/sync path (`if (el.textContent !== next)` — same-value writes still mutate), and reuse listener-bound elements instead of re-creating them (track live instances in a WeakSet, which HTML clones don't copy). Every refresh/sync pass gets a test asserting a second pass performs zero DOM writes. The playbook also has the headless-browser recipe for verifying against the real SillyTavern install.
+
 ## Design docs and SillyTavern reference
 
 `docs/superpowers/` holds specs and implementation plans (per-member models, deferred minors). No SillyTavern reference docs are vendored into this repo: consult the SillyTavern source or its docs on your machine. If a gitignored `LOCAL.md` exists at the repository root, read it first — it points at the local SillyTavern checkout (see [CONTRIBUTING.md](CONTRIBUTING.md) to create your own).
