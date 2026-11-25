@@ -49,3 +49,20 @@
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
     font-size: 1.35em;
 }
+
+/* Hide-member-avatars toggle: one class on the list container collapses
+   every avatar; pure CSS so SillyTavern's row rebuilds cannot undo it. */
+.rm_group_members.st-agc-hide-avatars .avatar {
+    display: none;
+}
+
+.st-agc-hide-avatars-button {
+    cursor: pointer;
+    margin: 4px 0;
+    width: fit-content;
+}
+
+.st-agc-hide-avatars-button:focus-visible {
+    outline: 1px solid var(--SmartThemeQuoteColor, #ffb347);
+    outline-offset: 1px;
+}

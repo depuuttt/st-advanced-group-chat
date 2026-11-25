@@ -204,6 +204,11 @@ function makeFakeElement(tag = 'div') {
         addEventListener: () => {},
         prepend: (child) => children.unshift(child),
         appendChild: (child) => { children.push(child); return child; },
+        insertBefore: (child, ref) => {
+            const i = ref ? children.indexOf(ref) : children.length;
+            children.splice(i === -1 ? children.length : i, 0, child);
+            return child;
+        },
         remove: () => {},
         querySelector: (sel) => {
             const cls = sel.startsWith('.') ? sel.slice(1) : null;
@@ -212,6 +217,80 @@ function makeFakeElement(tag = 'div') {
     };
     return el;
 }
+
+test('APP_READY registers the hide-member-avatars toggle in the member list', async () => {
+    const { fake, restore } = await loadIndex();
+
+    // A container for the member list and a pagination element with a parent,
+    // so the toggle can be inserted after the pagination.
+    const container = makeFakeElement();
+    container.classList.add('rm_group_members');
+    const pagination = makeFakeElement();
+    const parent = makeFakeElement();
+    pagination.parentElement = parent;
+    parent.appendChild(pagination);
+    parent.appendChild(container);
+
+    const doc = {
+        createElement: (tag) => makeFakeElement(tag),
+        querySelectorAll: (selector) => {
+            if (selector === '.rm_group_members') return [container];
+            if (selector === '.rm_group_members_pagination') return [pagination];
+            if (selector === '.st-agc-hide-avatars-button') {
+                return parent._children.filter((c) => c.classList.contains('st-agc-hide-avatars-button'));
+            }
+            return [];
+        },
+    };
+
+    const previous = globalThis.document;
+    globalThis.document = doc;
+    try {
+        fake.emit('app_ready');
+
+        const button = parent._children.find((c) => c.classList.contains('st-agc-hide-avatars-button'));
+        assert.ok(button, 'the toggle button was added after the pagination');
+        assert.equal(button.textContent, 'visibility', 'default state shows the hide icon');
+        assert.equal(container.classList.contains('st-agc-hide-avatars'), false, 'avatars shown by default');
+    } finally {
+        if (previous === undefined) delete globalThis.document;
+        else globalThis.document = previous;
+        restore();
+    }
+});
+
+test('APP_READY hides the member avatars when the open group has them hidden', async () => {
+    const { fake, restore } = await loadIndex();
+
+    const container = makeFakeElement();
+    container.classList.add('rm_group_members');
+
+    const doc = {
+        createElement: (tag) => makeFakeElement(tag),
+        querySelectorAll: (selector) => {
+            if (selector === '.rm_group_members') return [container];
+            if (selector === '.rm_group_members_pagination') return [];
+            return [];
+        },
+    };
+
+    const previous = globalThis.document;
+    globalThis.document = doc;
+    try {
+        fake.context.extensionSettings.st_advanced_group_chat = {
+            modelOverrides: {},
+            hideAvatars: { 'group-1': true },
+        };
+
+        fake.emit('app_ready');
+
+        assert.ok(container.classList.contains('st-agc-hide-avatars'), 'saved hidden state applied');
+    } finally {
+        if (previous === undefined) delete globalThis.document;
+        else globalThis.document = previous;
+        restore();
+    }
+});
 
 test('APP_READY composes member-model-button and material-icons on a member row', async () => {
     const { fake, restore } = await loadIndex();

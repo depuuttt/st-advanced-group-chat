@@ -9,6 +9,7 @@
 import { registerAppReady } from './src/extension-lifecycle.js';
 import { initRequestRouting, disposeRequestRouting } from './src/request-routing.js';
 import { initMemberModelButtons, disposeMemberModelButtons } from './src/member-model-button.js';
+import { initHideMemberAvatars, disposeHideMemberAvatars } from './src/hide-member-avatars.js';
 import { initMaterialIcons, disposeMaterialIcons } from './src/material-icons.js';
 import { initOverridePruning, disposeOverridePruning } from './src/override-pruning.js';
 
@@ -86,6 +87,12 @@ registerFeature({
     name: 'member-model-button',
     init: initMemberModelButtons,
     dispose: disposeMemberModelButtons,
+});
+
+registerFeature({
+    name: 'hide-member-avatars',
+    init: initHideMemberAvatars,
+    dispose: disposeHideMemberAvatars,
 });
 
 registerFeature({
