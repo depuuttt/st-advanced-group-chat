@@ -330,10 +330,13 @@ test('syncHideAvatarUI does not duplicate the button on a second sync', () => {
     const { restore } = installDocument({ paginations: [pagination] });
     try {
         syncHideAvatarUI();
+        const first = parent._children.find((c) => c.classList.contains(BUTTON_CLASS));
         syncHideAvatarUI();
 
         const buttons = parent._children.filter((c) => c.classList.contains(BUTTON_CLASS));
         assert.equal(buttons.length, 1, 'the live button is reused, not duplicated');
+        assert.equal(buttons[0], first, 'the same button node survives, so its listeners stay attached');
+        assert.equal(first._removed, false, 'the live button was not removed and re-created');
     } finally {
         restore();
     }

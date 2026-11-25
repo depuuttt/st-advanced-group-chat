@@ -26,6 +26,16 @@ const HIDDEN_CLASS = 'st-agc-hide-avatars';
 let observer = null;
 
 /**
+ * Buttons this module created and still bound to their listeners. HTML clones
+ * (the popout copies the drawer markup) carry classes and attributes but not
+ * expando properties, so this set is what separates a live button from a dead
+ * clone.
+ *
+ * @type {WeakSet<Element>}
+ */
+const liveButtons = new WeakSet();
+
+/**
  * The group whose member list the editor last rendered. SillyTavern's
  * `context.groupId` is the group whose *chat* is open, which is not always the
  * group on screen in the editor (and is null while creating a new group), so
@@ -174,25 +184,48 @@ export function syncHideAvatarUI() {
             continue;
         }
 
-        // The button may already sit after the pagination (a live one from an
-        // earlier sync) or elsewhere in the parent (a popout clone whose HTML
-        // was copied without its listeners, or a leftover from a re-render).
-        // Anything found is always replaced with a freshly bound button, so a
-        // dead clone can never survive and two toggles can never coexist.
+        // A button created by this module is reused as-is: its listeners stay
+        // attached and the node stays stable across refresh passes. Replacing
+        // it on every pass churns the DOM at observer rate, and a real click
+        // (mousedown … mouseup) then straddles a replacement, so the click
+        // event never fires on a live listener. HTML clones — the popout copies
+        // the drawer markup — and leftovers are not in `liveButtons`, so only
+        // those are removed and replaced with a freshly bound button.
+        let button = null;
         for (const existing of parent.querySelectorAll?.(`.${BUTTON_CLASS}`) ?? []) {
-            existing.remove?.();
+            if (!button && liveButtons.has(existing)) {
+                button = existing;
+            } else {
+                existing.remove?.();
+            }
         }
 
-        const button = createToggleButton(doc);
+        if (!button) {
+            button = createToggleButton(doc);
+            liveButtons.add(button);
+        }
+
+        // Move the button into place only when it is not already right after
+        // the pagination: inserting it where it already sits would touch the
+        // DOM on every pass for no change.
         const sibling = pagination.nextElementSibling ?? null;
-        if (sibling && sibling.parentNode === parent) {
-            parent.insertBefore(button, sibling);
-        } else {
-            parent.appendChild(button);
+        const inPlace = button.parentNode === parent && sibling === button;
+        if (!inPlace) {
+            if (sibling && sibling.parentNode === parent) {
+                parent.insertBefore(button, sibling);
+            } else {
+                parent.appendChild(button);
+            }
         }
 
-        button.textContent = icon;
-        button.title = title;
+        // Guarded writes: same-value textContent/title assignments still mutate
+        // the DOM, and this function runs at observer rate.
+        if (button.textContent !== icon) {
+            button.textContent = icon;
+        }
+        if (button.title !== title) {
+            button.title = title;
+        }
     }
 }
 
