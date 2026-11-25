@@ -80,10 +80,13 @@
    after dispose) nothing matches and the list looks exactly as SillyTavern
    ships it. The `#rm_group_members` variant is required in the drawer, where
    SillyTavern's own card rule is id-qualified and would otherwise out-specify
-   a class-only rule (its 0.25rem top margin and 10px radius would win). */
+   a class-only rule (its 0.25rem top margin and 10px radius would win). The
+   -5px margin-top cancels the 5px `gap` of SillyTavern's `.flex-container`
+   parent (st-tailwind.css), which sits between the pair whatever their
+   margins say. */
 .st-agc-member-toolbar + .rm_group_members,
 .st-agc-member-toolbar + #rm_group_members {
-    margin-top: 0;
+    margin-top: -5px;
     border-top-left-radius: 0;
     border-top-right-radius: 0;
 }
