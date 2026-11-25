@@ -78,8 +78,11 @@
 /* While a toolbar sits directly above it, the list's top corners square off
    and the gap closes, so the pair reads as one card. Without a toolbar (e.g.
    after dispose) nothing matches and the list looks exactly as SillyTavern
-   ships it. */
-.st-agc-member-toolbar + .rm_group_members {
+   ships it. The `#rm_group_members` variant is required in the drawer, where
+   SillyTavern's own card rule is id-qualified and would otherwise out-specify
+   a class-only rule (its 0.25rem top margin and 10px radius would win). */
+.st-agc-member-toolbar + .rm_group_members,
+.st-agc-member-toolbar + #rm_group_members {
     margin-top: 0;
     border-top-left-radius: 0;
     border-top-right-radius: 0;
