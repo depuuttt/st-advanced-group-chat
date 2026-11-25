@@ -38,7 +38,7 @@ Enter the model identifier used by your provider, not necessarily the display na
 
 ## Hide member avatars
 
-In the group-management panel's **Current Members** section, a toggle sits under the member-list pagination (the bar with the page arrows). Select it to hide every member's avatar image in that group's list — the rows become a plain list of names, with more room for the members themselves. Select it again to bring the images back.
+In the group-management panel's **Current Members** section, a toolbar strip sits directly above the member list, reading as the list card's header. The eye toggle at its right edge hides every member's avatar image in that group's list — the rows become a plain list of names, with more room for the members themselves. Select it again to bring the images back.
 
 Each group remembers its own choice, so hiding avatars in one group leaves the others as they were. The floating popout of the member list follows the same setting.
 
