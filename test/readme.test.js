@@ -59,3 +59,10 @@ test('README explains the hide-member-avatars toggle', () => {
     assert.match(readme, /does not (?:change|affect).*chat|nothing about the chat changes/i);
     assert.match(readme, /pagination|Current Members/i);
 });
+
+test('README explains the hide-member-tags toggle', () => {
+    assert.match(readme, /^## Hide member tags$/m);
+    assert.match(readme, /saved separately for each group|each group remembers/i);
+    assert.match(readme, /tag filter/i);
+    assert.match(readme, /does not (?:change|affect).*chat|nothing about the chat changes/i);
+});
