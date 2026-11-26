@@ -1,6 +1,6 @@
 # Advanced Group Chat
 
-Advanced Group Chat is a work-in-progress SillyTavern extension for adding features to group chats. Its feature set is still taking shape. Per-member model selection is the first available feature; other features have not been defined yet.
+Advanced Group Chat is a work-in-progress SillyTavern extension for adding features to group chats. Its feature set is still taking shape, starting with per-member model selection.
 
 ## Current feature: per-member models
 

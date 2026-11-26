@@ -45,8 +45,6 @@ function makeMemberList() {
     return el;
 }
 
-// PLACEHOLDER_TESTS
-
 test('createToggleButton builds an accessible button that activates on click and keyboard', () => {
     const doc = { createElement: (tag) => makeElement(tag) };
     let activated = 0;
@@ -239,8 +237,6 @@ test('a displaced toolbar is reseated as the same node', () => {
         restore();
     }
 });
-
-// PLACEHOLDER_TESTS_2
 
 test('a second sync pass performs zero DOM writes with two contributors registered', () => {
     __resetEditorGroupIdForTests();
