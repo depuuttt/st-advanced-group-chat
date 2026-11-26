@@ -106,3 +106,14 @@ test('initOverridePruning prunes a hideAvatars entry for a deleted group', () =>
     assert.deepEqual(settings.hideAvatars, {});
     assert.equal(fake.state.saveCount, 1);
 });
+
+test('initOverridePruning prunes a hideTags entry for a deleted group', () => {
+    const { fake } = installPruning();
+    fake.context.extensionSettings.st_advanced_group_chat.hideTags = { 'gone-group': true };
+
+    initOverridePruning();
+
+    const settings = fake.context.extensionSettings.st_advanced_group_chat;
+    assert.deepEqual(settings.hideTags, {});
+    assert.equal(fake.state.saveCount, 1);
+});
