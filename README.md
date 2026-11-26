@@ -1,6 +1,6 @@
 # Advanced Group Chat
 
-Advanced Group Chat is a work-in-progress SillyTavern extension for adding features to group chats. Its feature set is still taking shape. Per-member model selection is the first available feature; other features have not been defined yet.
+Advanced Group Chat is a work-in-progress SillyTavern extension for adding features to group chats. Its feature set is still taking shape, starting with per-member model selection.
 
 ## Current feature: per-member models
 
@@ -44,6 +44,14 @@ Each group remembers its own choice, so hiding avatars in one group leaves the o
 
 This is purely visual: it does not change who is in the group or how the chat behaves, and nothing about the chat changes.
 
+## Hide member tags
+
+In the same toolbar strip, a second toggle sits beside the eye toggle. The tag toggle hides every member row's tag chips in that group's member list — the rows become just names and avatars, with the per-member tags tucked away. Select it again to bring the tags back.
+
+Each group remembers its choice separately from the avatars toggle, so hiding tags in one group leaves the others — and the avatars setting — as they were. The floating popout of the member list follows the same setting.
+
+The tag filter box above the member list is left untouched: you can still filter members by tag while their chips are hidden. This is purely visual, and nothing about the chat changes.
+
 ## Important to know
 
 - This works in group chats using **Chat Completion**. It does not affect one-on-one chats or **Text Completion**.
@@ -56,6 +64,7 @@ This is purely visual: it does not change who is in the group or how the chat be
 
 - **The model choice has no effect:** Check that the group uses Chat Completion, that the model name is correct for your provider, and that the model is available through the current connection.
 - **The hide-avatars toggle is missing:** Check that the extension is enabled and loaded (see below), then reopen the group-management panel.
+- **The hide-tags toggle is missing:** Check that the extension is enabled and loaded (see below), then reopen the group-management panel; the tag toggle sits beside the eye toggle in the toolbar strip above the member list.
 - **The model icon is missing:** Check that the extension is enabled, then reload SillyTavern and reopen the group-management panel.
 - **The member row icons show words instead of symbols:** The bundled font may not have loaded. Reload SillyTavern; if it persists, confirm the extension's `fonts/material-symbols-rounded.woff2` file is present in the installed copy.
 - **The extension does not load:** Open the browser console (usually F12) and look for messages beginning with `[st_advanced_group_chat]`. After a SillyTavern update, an extension update may be needed if its group controls or events have changed.

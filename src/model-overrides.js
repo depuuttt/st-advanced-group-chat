@@ -1,11 +1,13 @@
 /**
- * Per-group, per-member model overrides plus per-group hidden-avatar flags.
+ * Per-group, per-member model overrides plus per-group hidden-avatar and
+ * hidden-tag flags.
  *
  * Storage lives in this extension's own SillyTavern extension settings, under a
  * unique key, shaped as:
  *
  *   extensionSettings['st_advanced_group_chat'].modelOverrides[groupId][avatarId] = 'model-name'
  *   extensionSettings['st_advanced_group_chat'].hideAvatars[groupId] = true
+ *   extensionSettings['st_advanced_group_chat'].hideTags[groupId] = true
  *
  * Members are keyed by avatar ID rather than display name, because two characters
  * in the same group can share a name. API keys are never stored here.
@@ -17,10 +19,10 @@ const MODULE_NAME = 'st_advanced_group_chat';
  * Returns a fresh default settings object on every call. Plain JSON needs no
  * deep clone; a factory avoids callers sharing (and mutating) one template.
  *
- * @returns {{ modelOverrides: object, hideAvatars: object }} Default extension settings.
+ * @returns {{ modelOverrides: object, hideAvatars: object, hideTags: object }} Default extension settings.
  */
 export function createDefaultSettings() {
-    return { modelOverrides: {}, hideAvatars: {} };
+    return { modelOverrides: {}, hideAvatars: {}, hideTags: {} };
 }
 
 /**
@@ -229,6 +231,80 @@ export function pruneHiddenAvatars(settings, groups) {
 
         if (!group) {
             delete settings.hideAvatars[groupId];
+            removed += 1;
+        }
+    }
+
+    return removed;
+}
+
+/**
+ * Reports whether member tags are hidden in one group.
+ *
+ * @param {object|null} settings Extension settings object.
+ * @param {string} groupId Group ID.
+ * @returns {boolean} True when the saved flag for that group is true.
+ */
+export function getHideTags(settings, groupId) {
+    if (!groupId) {
+        return false;
+    }
+
+    return Boolean(settings?.hideTags?.[groupId]);
+}
+
+/**
+ * Saves or clears the hidden-tags flag for one group.
+ *
+ * Setting `hidden` to false deletes the entry, putting the group back on the
+ * default (tags shown). Mirrors `setHideAvatars`' persistence pattern.
+ *
+ * @param {object|null} settings Extension settings object.
+ * @param {string} groupId Group ID.
+ * @param {boolean} hidden Whether member tags are hidden in that group.
+ * @returns {void}
+ */
+export function setHideTags(settings, groupId, hidden) {
+    if (!settings || !groupId) {
+        return;
+    }
+
+    if (!settings.hideTags) {
+        settings.hideTags = {};
+    }
+
+    if (hidden) {
+        settings.hideTags[groupId] = true;
+    } else {
+        delete settings.hideTags[groupId];
+    }
+
+    saveSettings();
+}
+
+/**
+ * Removes saved hidden-tag flags whose group no longer exists.
+ *
+ * Mirrors `pruneHiddenAvatars`' group-level rule: a flag is deleted when
+ * `groups` holds no group with its ID. Never persists; the caller decides when
+ * to save.
+ *
+ * @param {object|null} settings Extension settings object.
+ * @param {unknown[]} groups SillyTavern's group list, or something that is not one.
+ * @returns {number} How many group entries were removed.
+ */
+export function pruneHiddenTags(settings, groups) {
+    if (!settings?.hideTags || !Array.isArray(groups)) {
+        return 0;
+    }
+
+    let removed = 0;
+
+    for (const groupId of Object.keys(settings.hideTags)) {
+        const group = groups.find((candidate) => candidate?.id === groupId);
+
+        if (!group) {
+            delete settings.hideTags[groupId];
             removed += 1;
         }
     }

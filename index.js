@@ -10,6 +10,7 @@ import { registerAppReady } from './src/extension-lifecycle.js';
 import { initRequestRouting, disposeRequestRouting } from './src/request-routing.js';
 import { initMemberModelButtons, disposeMemberModelButtons } from './src/member-model-button.js';
 import { initHideMemberAvatars, disposeHideMemberAvatars } from './src/hide-member-avatars.js';
+import { initHideMemberTags, disposeHideMemberTags } from './src/hide-member-tags.js';
 import { initMaterialIcons, disposeMaterialIcons } from './src/material-icons.js';
 import { initOverridePruning, disposeOverridePruning } from './src/override-pruning.js';
 
@@ -93,6 +94,12 @@ registerFeature({
     name: 'hide-member-avatars',
     init: initHideMemberAvatars,
     dispose: disposeHideMemberAvatars,
+});
+
+registerFeature({
+    name: 'hide-member-tags',
+    init: initHideMemberTags,
+    dispose: disposeHideMemberTags,
 });
 
 registerFeature({

@@ -8,7 +8,7 @@
  * re-scan the whole group list instead.
  */
 
-import { pruneModelOverrides, pruneHiddenAvatars, getSettings } from './model-overrides.js';
+import { pruneModelOverrides, pruneHiddenAvatars, pruneHiddenTags, getSettings } from './model-overrides.js';
 
 const MODULE_NAME = 'st_advanced_group_chat';
 
@@ -42,7 +42,8 @@ function pruneAndSave() {
     const groups = context?.groups;
 
     const removed = pruneModelOverrides(settings, groups)
-        + pruneHiddenAvatars(settings, groups);
+        + pruneHiddenAvatars(settings, groups)
+        + pruneHiddenTags(settings, groups);
 
     if (removed > 0) {
         context?.saveSettingsDebounced?.();

@@ -56,6 +56,14 @@
     display: none;
 }
 
+/* Hide-member-tags toggle: one class on the list container hides every
+   member row's tag chips. Scoped to the inline chips inside the member list so
+   the group editor's tag filter box is never hidden; pure CSS so SillyTavern's
+   row rebuilds cannot undo it. */
+.rm_group_members.st-agc-hide-tags .tags_inline {
+    display: none;
+}
+
 /* The toolbar strip above each member list: a plain container div (inserted
    by src/hide-member-avatars.js as a sibling, never a child of the list) that
    reads as the list card's header. Mirrors the card look from SillyTavern's
@@ -91,11 +99,11 @@
     border-top-right-radius: 0;
 }
 
-.st-agc-hide-avatars-button {
+.st-agc-toolbar-button {
     cursor: pointer;
 }
 
-.st-agc-hide-avatars-button:focus-visible {
+.st-agc-toolbar-button:focus-visible {
     outline: 1px solid var(--SmartThemeQuoteColor, #ffb347);
     outline-offset: 1px;
 }
