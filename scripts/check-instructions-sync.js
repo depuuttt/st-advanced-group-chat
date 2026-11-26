@@ -4,34 +4,25 @@ import { dirname, resolve, join } from 'node:path';
 
 const repoRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 
-/** Return the document body, excluding its first-level title header. */
-export function withoutTitle(source, expectedTitle) {
-    const normalized = source.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n');
-    const newline = normalized.indexOf('\n');
-    const title = newline === -1 ? normalized : normalized.slice(0, newline);
-
-    if (title !== `# ${expectedTitle}`) {
-        throw new Error(`Expected the first line to be "# ${expectedTitle}".`);
+/**
+ * CLAUDE.md must stay a minimal pointer to AGENTS.md, not a mirrored copy:
+ * it has to link AGENTS.md and stay short.
+ */
+export function checkClaudePointer(claude) {
+    const normalized = claude.replace(/^﻿/, '').replace(/\r\n/g, '\n');
+    if (!normalized.includes('[AGENTS.md](AGENTS.md)')) {
+        return 'CLAUDE.md must point at AGENTS.md; link it as [AGENTS.md](AGENTS.md).';
     }
-
-    return newline === -1 ? '' : normalized.slice(newline + 1);
-}
-
-export function checkInstructionSync(agents, claude) {
-    try {
-        if (withoutTitle(agents, 'AGENTS.md') !== withoutTitle(claude, 'CLAUDE.md')) {
-            return 'AGENTS.md and CLAUDE.md differ after their title headers.';
-        }
-        return null;
-    } catch (error) {
-        return error.message;
+    const lines = normalized.split('\n').filter((line, index, all) => index < all.length - 1 || line !== '').length;
+    if (lines > 15) {
+        return `CLAUDE.md must stay a minimal pointer to AGENTS.md; it has ${lines} lines (limit 15). Move content into AGENTS.md instead.`;
     }
+    return null;
 }
 
 export function checkRepositoryInstructions(root = repoRoot) {
-    const agents = readFileSync(join(root, 'AGENTS.md'), 'utf8');
     const claude = readFileSync(join(root, 'CLAUDE.md'), 'utf8');
-    return checkInstructionSync(agents, claude);
+    return checkClaudePointer(claude);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
@@ -40,6 +31,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
         console.error(error);
         process.exitCode = 1;
     } else {
-        console.log('AGENTS.md and CLAUDE.md are synchronized.');
+        console.log('CLAUDE.md points at AGENTS.md.');
     }
 }

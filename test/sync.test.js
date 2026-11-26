@@ -1,21 +1,22 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { checkInstructionSync, checkRepositoryInstructions } from '../scripts/check-instructions-sync.js';
+import { checkClaudePointer, checkRepositoryInstructions } from '../scripts/check-instructions-sync.js';
 
-test('AGENTS.md and CLAUDE.md stay identical after their title headers', () => {
+test('CLAUDE.md stays a minimal pointer to AGENTS.md', () => {
     assert.equal(checkRepositoryInstructions(), null);
 });
 
-test('the sync checker reports body drift', () => {
+test('the pointer checker requires a link to AGENTS.md', () => {
     assert.match(
-        checkInstructionSync('# AGENTS.md\nShared guidance.\n', '# CLAUDE.md\nChanged guidance.\n'),
-        /differ after their title headers/,
+        checkClaudePointer('# CLAUDE.md\nSee AGENTS.md for guidance.\n'),
+        /must point at AGENTS\.md/,
     );
 });
 
-test('the sync checker requires a title header', () => {
+test('the pointer checker rejects a mirrored body', () => {
+    const mirrored = `# CLAUDE.md\n\nRead [AGENTS.md](AGENTS.md).\n\n${Array.from({ length: 20 }, (_, i) => `Filler line ${i + 1}.`).join('\n')}\n`;
     assert.match(
-        checkInstructionSync('No title\nShared guidance.\n', '# CLAUDE.md\nShared guidance.\n'),
-        /Expected the first line to be "# AGENTS\.md"/,
+        checkClaudePointer(mirrored),
+        /must stay a minimal pointer/,
     );
 });

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-These files contain the shared, tool-agnostic guidance for coding assistants working in this repository. Keep their contents synchronized, changing only their title headers.
+This file contains the shared, tool-agnostic guidance for coding assistants working in this repository. [`CLAUDE.md`](CLAUDE.md) is a minimal pointer to it; update this file, not both.
 
 ## What this is
 
