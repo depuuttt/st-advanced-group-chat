@@ -175,11 +175,37 @@ function makeFakeElement(tag = 'div') {
     const attrs = {};
     const children = [];
     const dataKey = (k) => 'data-' + k.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase());
+    // Keep sibling/parent links in sync, as a real DOM does: the toolbar sync
+    // reads `previousElementSibling` to decide whether a node is already seated.
+    const relink = () => {
+        children.forEach((c, i) => {
+            c.previousElementSibling = children[i - 1] ?? null;
+            c.nextElementSibling = children[i + 1] ?? null;
+        });
+    };
+    const detach = (child) => {
+        const i = children.indexOf(child);
+        if (i !== -1) children.splice(i, 1);
+    };
+    const detachFromParent = (child) => {
+        const siblings = child.parentNode?._children;
+        if (!siblings) return;
+        const i = siblings.indexOf(child);
+        if (i !== -1) siblings.splice(i, 1);
+        siblings.forEach((c, idx) => {
+            c.previousElementSibling = siblings[idx - 1] ?? null;
+            c.nextElementSibling = siblings[idx + 1] ?? null;
+        });
+    };
     const el = {
         tagName: tag,
         textContent: '',
         title: '',
         _children: children,
+        parentNode: null,
+        parentElement: null,
+        previousElementSibling: null,
+        nextElementSibling: null,
         get className() { return [...classes].join(' '); },
         set className(v) {
             classes.clear();
@@ -202,17 +228,25 @@ function makeFakeElement(tag = 'div') {
         setAttribute: (k, v) => { attrs[k] = String(v); },
         getAttribute: (k) => (k in attrs ? attrs[k] : null),
         addEventListener: () => {},
-        prepend: (child) => children.unshift(child),
-        appendChild: (child) => { children.push(child); return child; },
+        prepend: (child) => { detach(child); children.unshift(child); child.parentNode = el; child.parentElement = el; relink(); },
+        appendChild: (child) => { detach(child); children.push(child); child.parentNode = el; child.parentElement = el; relink(); return child; },
         insertBefore: (child, ref) => {
+            detach(child);
             const i = ref ? children.indexOf(ref) : children.length;
             children.splice(i === -1 ? children.length : i, 0, child);
+            child.parentNode = el;
+            child.parentElement = el;
+            relink();
             return child;
         },
-        remove: () => {},
+        remove: () => { detachFromParent(el); relink(); },
         querySelector: (sel) => {
             const cls = sel.startsWith('.') ? sel.slice(1) : null;
             return cls ? children.find((c) => c.classList.contains(cls)) ?? null : null;
+        },
+        querySelectorAll: (sel) => {
+            const cls = sel.startsWith('.') ? sel.slice(1) : null;
+            return cls ? children.filter((c) => c.classList.contains(cls)) : [];
         },
     };
     return el;
